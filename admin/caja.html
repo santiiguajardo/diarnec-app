@@ -22,11 +22,14 @@
   .caja-bar .real{font-size:19px;}
   .caja-bar .real.neg{color:#ff8a80;}
   .caja-bar .real.pos{color:#4ade80;}
-  .gasto-form{display:grid;grid-template-columns:2fr 1fr auto auto auto;gap:8px;align-items:center;}
+  .gasto-form{display:grid;grid-template-columns:2fr 1fr auto auto;gap:8px;align-items:center;margin-bottom:16px;}
   .gasto-form input{padding:9px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px;width:100%;}
   .btn-orange{background:#e67e22;color:#fff;}
   .btn-green{background:#27ae60;color:#fff;}
-  .hint{color:var(--muted);font-size:12px;font-style:italic;margin:8px 0;}
+  .btn-edit{background:#253745;color:#fff;}
+  .row-btns{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap;}
+  .row-btns .btn-sm{white-space:nowrap;}
+  td.wrap{white-space:normal;}
   tr.selected{outline:2px solid var(--navy);outline-offset:-2px;}
   tr.selected td{background:rgba(18,36,54,.06);}
   @media (max-width:800px){ .gasto-form{grid-template-columns:1fr 1fr;} }

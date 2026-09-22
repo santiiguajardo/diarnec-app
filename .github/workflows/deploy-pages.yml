@@ -1,0 +1,56 @@
+name: Publicar panel y tienda en GitHub Pages
+
+# Cada vez que se sube algo a main que toca el panel, la tienda o sus recursos, esto copia esos
+# archivos a la rama gh-pages (la que sirve GitHub Pages) y los publica. No hace falta correr nada
+# a mano ni tocar la carpeta F:/diarnec-app-pages: en un minuto o dos el cambio ya está online.
+# También se puede disparar a mano desde la pestaña "Actions" del repo en GitHub ("Run workflow").
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'admin/**'
+      - 'js/**'
+      - 'css/**'
+      - 'img/**'
+      - 'tiendaonline/index.html'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar main
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Preparar la rama gh-pages en una carpeta aparte
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch origin gh-pages
+          git worktree add _pages gh-pages
+
+      - name: Copiar el panel y la tienda a gh-pages (sin tocar el index.html de la tienda)
+        run: |
+          mkdir -p _pages/admin _pages/css _pages/img _pages/js/shared _pages/js/modules
+          cp -r admin/. _pages/admin/
+          cp -r css/. _pages/css/
+          cp -r img/. _pages/img/
+          cp -r js/shared/. _pages/js/shared/
+          cp -r js/modules/. _pages/js/modules/
+          if [ -f tiendaonline/index.html ]; then cp tiendaonline/index.html _pages/index.html; fi
+
+      - name: Publicar si hay cambios
+        run: |
+          cd _pages
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Sin cambios para publicar."
+          else
+            git commit -m "Publicar: ${{ github.event.head_commit.message || 'actualización manual' }}"
+            git push origin gh-pages
+          fi

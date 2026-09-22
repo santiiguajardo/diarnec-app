@@ -5,7 +5,7 @@ import { money, dateTime } from '../shared/format.js';
 import { confirmDialog } from '../shared/dialogs.js';
 
 let gastos = [];
-let seleccionado = null; // id del gasto elegido para editar/borrar
+let editando = null; // id del gasto que se está modificando (null = cargando uno nuevo)
 
 (async function init(){
   if(!(await requireAuth())) return;
@@ -21,25 +21,29 @@ let seleccionado = null; // id del gasto elegido para editar/borrar
     </div>
 
     <div class="admin-section">
-      <h3>Gastos</h3>
+      <h3 id="g-titulo">Registrar gasto</h3>
       <div class="gasto-form">
         <input type="text" id="g-detalle" placeholder="Detalle del gasto...">
         <input type="number" step="0.01" id="g-monto" placeholder="Monto $">
         <button class="btn-sm btn-green" id="g-registrar">+ Registrar</button>
-        <button class="btn-sm btn-orange" id="g-guardar" disabled>✏️ Guardar cambios</button>
-        <button class="btn-sm btn-del" id="g-borrar" disabled>🗑 Borrar</button>
+        <button class="btn-sm btn-grey" id="g-cancelar" hidden>Cancelar</button>
       </div>
-      <p class="hint">* Hacé clic sobre un gasto en la tabla para modificarlo o borrarlo.</p>
       <table>
-        <thead><tr><th>ID</th><th>Fecha y hora</th><th>Detalle del gasto</th><th>Monto ($)</th></tr></thead>
+        <thead><tr><th>Fecha y hora</th><th>Detalle del gasto</th><th>Monto ($)</th><th></th></tr></thead>
         <tbody id="gastos-body"></tbody>
       </table>
     </div>
   `;
 
   document.getElementById('g-registrar').addEventListener('click', registrar);
-  document.getElementById('g-guardar').addEventListener('click', guardarCambios);
-  document.getElementById('g-borrar').addEventListener('click', borrar);
+  document.getElementById('g-cancelar').addEventListener('click', cancelarEdicion);
+  document.getElementById('gastos-body').addEventListener('click', e => {
+    const btn = e.target.closest('button[data-act]');
+    if(!btn) return;
+    const id = Number(btn.dataset.id);
+    if(btn.dataset.act === 'editar') empezarEdicion(id);
+    else if(btn.dataset.act === 'borrar') borrar(id);
+  });
 
   await cargarTodo();
 })();
@@ -67,6 +71,8 @@ async function cargarTodo(){
   realEl.textContent = money(real);
   realEl.className = 'real ' + (real >= 0 ? 'pos' : 'neg');
 
+  // Si el gasto que se estaba editando ya no existe (lo borraron en otra pestaña, etc.), se sale del modo edición.
+  if(editando !== null && !gastos.some(g => g.id === editando)) cancelarEdicion();
   render();
 }
 
@@ -77,71 +83,64 @@ function render(){
     return;
   }
   tbody.innerHTML = gastos.map(g => `
-    <tr class="${g.id === seleccionado ? 'selected' : ''}" onclick="window.gastoSeleccionar(${g.id})">
-      <td>${g.id}</td>
+    <tr class="${g.id === editando ? 'selected' : ''}">
       <td>${dateTime(g.created_at)}</td>
       <td class="wrap">${g.descripcion}</td>
       <td>${money(g.monto)}</td>
+      <td class="row-btns">
+        <button class="btn-sm btn-edit" data-act="editar" data-id="${g.id}">✏️ Modificar</button>
+        <button class="btn-sm btn-del" data-act="borrar" data-id="${g.id}">🗑 Borrar</button>
+      </td>
     </tr>`).join('');
-
-  const hay = seleccionado !== null;
-  document.getElementById('g-guardar').disabled = !hay;
-  document.getElementById('g-borrar').disabled = !hay;
 }
 
-function gastoSeleccionar(id){
-  if(seleccionado === id){
-    seleccionado = null;
-    document.getElementById('g-detalle').value = '';
-    document.getElementById('g-monto').value = '';
-  } else {
-    seleccionado = id;
-    const g = gastos.find(g => g.id === id);
-    document.getElementById('g-detalle').value = g.descripcion;
-    document.getElementById('g-monto').value = g.monto;
-  }
+// El formulario de arriba pasa a modo "editando #N": mismo formulario, título distinto, y el
+// botón cambia de "+ Registrar" a "✏️ Guardar cambios" — así queda claro en qué modo se está.
+function empezarEdicion(id){
+  const g = gastos.find(g => g.id === id);
+  if(!g) return;
+  editando = id;
+  document.getElementById('g-detalle').value = g.descripcion;
+  document.getElementById('g-monto').value = g.monto;
+  document.getElementById('g-titulo').textContent = `Modificando el gasto del ${dateTime(g.created_at)}`;
+  document.getElementById('g-registrar').textContent = '✏️ Guardar cambios';
+  document.getElementById('g-cancelar').hidden = false;
+  document.getElementById('g-detalle').focus();
   render();
 }
 
+function cancelarEdicion(){
+  editando = null;
+  document.getElementById('g-detalle').value = '';
+  document.getElementById('g-monto').value = '';
+  document.getElementById('g-titulo').textContent = 'Registrar gasto';
+  document.getElementById('g-registrar').textContent = '+ Registrar';
+  document.getElementById('g-cancelar').hidden = true;
+  render();
+}
+
+// Un solo botón hace las dos cosas según el modo (registrar uno nuevo o guardar el que se está editando).
 async function registrar(){
   const descripcion = document.getElementById('g-detalle').value.trim();
   const monto = parseFloat(document.getElementById('g-monto').value);
   if(!descripcion || isNaN(monto) || monto <= 0){ alert('Completá el detalle y un monto válido.'); return; }
 
-  const { error } = await sb.from('gastos').insert({ descripcion, monto });
-  if(error){ alert('No se pudo registrar: ' + error.message); return; }
-
-  document.getElementById('g-detalle').value = '';
-  document.getElementById('g-monto').value = '';
-  await cargarTodo();
-}
-
-async function guardarCambios(){
-  if(seleccionado === null) return;
-  const descripcion = document.getElementById('g-detalle').value.trim();
-  const monto = parseFloat(document.getElementById('g-monto').value);
-  if(!descripcion || isNaN(monto) || monto <= 0){ alert('Completá el detalle y un monto válido.'); return; }
-
-  const { error } = await sb.from('gastos').update({ descripcion, monto }).eq('id', seleccionado);
+  const { error } = editando === null
+    ? await sb.from('gastos').insert({ descripcion, monto })
+    : await sb.from('gastos').update({ descripcion, monto }).eq('id', editando);
   if(error){ alert('No se pudo guardar: ' + error.message); return; }
 
-  seleccionado = null;
-  document.getElementById('g-detalle').value = '';
-  document.getElementById('g-monto').value = '';
+  cancelarEdicion();
   await cargarTodo();
 }
 
-async function borrar(){
-  if(seleccionado === null) return;
-  if(!(await confirmDialog('¿Borrar este gasto?'))) return;
+async function borrar(id){
+  const g = gastos.find(g => g.id === id);
+  if(!(await confirmDialog(`¿Borrar el gasto "${g ? g.descripcion : ''}" de ${g ? money(g.monto) : ''}?\nSe elimina definitivamente.`, { confirmLabel: 'Borrar' }))) return;
 
-  const { error } = await sb.from('gastos').delete().eq('id', seleccionado);
+  const { error } = await sb.from('gastos').delete().eq('id', id);
   if(error){ alert('No se pudo borrar: ' + error.message); return; }
 
-  seleccionado = null;
-  document.getElementById('g-detalle').value = '';
-  document.getElementById('g-monto').value = '';
+  if(editando === id) cancelarEdicion();
   await cargarTodo();
 }
-
-Object.assign(window, { gastoSeleccionar });
