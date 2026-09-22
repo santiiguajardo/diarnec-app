@@ -52,7 +52,7 @@ const FILTROS = [
         <button class="btn-sm btn-blue" id="btn-csv">⬇ Exportar CSV</button>
       </div>
       <table>
-        <thead><tr><th>Fecha</th><th>Tipo</th><th>Detalle</th><th>Importe</th><th></th></tr></thead>
+        <thead><tr><th>Fecha</th><th>Tipo</th><th>Detalle</th><th>Usuario</th><th>Importe</th><th></th></tr></thead>
         <tbody id="hist-body"></tbody>
       </table>
       <p class="hist-note">Cada movimiento se puede modificar o anular desde su fila; lo anulado queda en el historial pero no cuenta en las cuentas corrientes ni en la caja. Los movimientos de stock se generan solos: para corregir el stock de un producto usá "Ajuste" en Inventario.</p>
@@ -84,18 +84,31 @@ const FILTROS = [
   await cargarTodo();
 })();
 
+// uid -> nombre a mostrar. Los pedidos de la tienda online no los carga nadie logueado (created_by
+// queda null): se distinguen del resto de los movimientos sin usuario (datos viejos, de antes de esta
+// función) mostrando "Tienda online" en vez de "—".
+async function usuariosMap(){
+  const { data } = await sb.from('staff_usuarios').select('auth_user_id, username');
+  return new Map((data || []).map(u => [u.auth_user_id, u.username]));
+}
+const nombreUsuario = (usuarios, raw, tipo) => {
+  if(raw.created_by) return usuarios.get(raw.created_by) || 'usuario eliminado';
+  return tipo === 'venta' && raw.canal === 'online' ? 'Tienda online' : '—';
+};
+
 async function cargarTodo(){
-  const [{ data: ventas }, { data: devoluciones }, { data: pagosProv }, { data: gastos }, { data: pagosVend }, { data: pagosCli }, { data: bonis }, { data: stock }] = await Promise.all([
+  const [{ data: ventas }, { data: devoluciones }, { data: pagosProv }, { data: gastos }, { data: pagosVend }, { data: pagosCli }, { data: bonis }, { data: stock }, usuarios] = await Promise.all([
     // Las ventas que un vendedor se registra solo (desde su cartera, canal 'vendedor') son su propia
     // cuenta con ese cliente: se ven en "Mis movimientos" de él, no acá.
-    sb.from('ventas').select('id, fecha, created_at, canal, cliente_id, cliente_nombre, total_neto, estado, vendedor_id, vendedores(nombre)').neq('canal', 'vendedor').order('created_at', { ascending: false }).limit(200),
-    sb.from('devoluciones_cab').select('id, venta_id, fecha, created_at, motivo, total, con_stock, anulado, vendedor_id, vendedores(nombre)').order('created_at', { ascending: false }).limit(200),
-    sb.from('pagos_proveedores').select('id, fecha, created_at, proveedor_id, medio_pago, monto_bruto, comision_pct, monto_neto, descripcion, anulado, proveedores(nombre)').order('created_at', { ascending: false }).limit(200),
-    sb.from('gastos').select('id, fecha, created_at, descripcion, monto, anulado').order('created_at', { ascending: false }).limit(200),
-    sb.from('pagos_vendedores').select('id, fecha, created_at, vendedor_id, medio_pago, monto, descripcion, anulado, vendedores(nombre)').order('created_at', { ascending: false }).limit(200),
-    sb.from('pagos_clientes').select('id, fecha, created_at, cliente_id, medio_pago, monto, descripcion, anulado, clientes(nombre)').order('created_at', { ascending: false }).limit(200),
-    sb.from('bonificaciones').select('id, fecha, created_at, vendedor_id, monto, descripcion, anulado, vendedores(nombre)').order('created_at', { ascending: false }).limit(200),
-    sb.from('movimientos_stock').select('id, fecha, created_at, tipo, cantidad, motivo, productos(nombre)').order('created_at', { ascending: false }).limit(200)
+    sb.from('ventas').select('id, fecha, created_at, canal, cliente_id, cliente_nombre, total_neto, estado, vendedor_id, created_by, vendedores(nombre)').neq('canal', 'vendedor').order('created_at', { ascending: false }).limit(200),
+    sb.from('devoluciones_cab').select('id, venta_id, fecha, created_at, motivo, total, con_stock, anulado, vendedor_id, created_by, vendedores(nombre)').order('created_at', { ascending: false }).limit(200),
+    sb.from('pagos_proveedores').select('id, fecha, created_at, proveedor_id, medio_pago, monto_bruto, comision_pct, monto_neto, descripcion, anulado, created_by, proveedores(nombre)').order('created_at', { ascending: false }).limit(200),
+    sb.from('gastos').select('id, fecha, created_at, descripcion, monto, anulado, created_by').order('created_at', { ascending: false }).limit(200),
+    sb.from('pagos_vendedores').select('id, fecha, created_at, vendedor_id, medio_pago, monto, descripcion, anulado, created_by, vendedores(nombre)').order('created_at', { ascending: false }).limit(200),
+    sb.from('pagos_clientes').select('id, fecha, created_at, cliente_id, medio_pago, monto, descripcion, anulado, created_by, clientes(nombre)').order('created_at', { ascending: false }).limit(200),
+    sb.from('bonificaciones').select('id, fecha, created_at, vendedor_id, monto, descripcion, anulado, created_by, vendedores(nombre)').order('created_at', { ascending: false }).limit(200),
+    sb.from('movimientos_stock').select('id, fecha, created_at, tipo, cantidad, motivo, created_by, productos(nombre)').order('created_at', { ascending: false }).limit(200),
+    usuariosMap()
   ]);
 
   const rows = [];
@@ -103,46 +116,54 @@ async function cargarTodo(){
   const marca = a => a ? ' [ANULADO]' : '';
   (ventas||[]).forEach(v => rows.push({
     tipo: 'venta', refId: v.id, fecha: v.created_at, raw: v, anulado: v.estado === 'anulada',
+    usuario: nombreUsuario(usuarios, v, 'venta'),
     cuenta: v.cliente_nombre || (v.vendedores ? v.vendedores.nombre : ''),
     detalle: `Venta #${v.id} (${v.canal === 'online' ? 'tienda online' : 'manual'}) — ${v.cliente_nombre || (v.vendedores ? v.vendedores.nombre : '')}${marca(v.estado === 'anulada')}${v.estado === 'pendiente' ? ' [PENDIENTE]' : ''}`,
     importe: Number(v.total_neto), signo: v.estado === 'confirmada' ? 1 : 0
   }));
   (devoluciones||[]).forEach(d => rows.push({
     tipo: d.con_stock ? 'devolucion_stock' : 'devolucion', refId: d.id, fecha: d.created_at, raw: d, anulado: d.anulado,
+    usuario: nombreUsuario(usuarios, d, 'devolucion'),
     cuenta: d.vendedores ? d.vendedores.nombre : '',
     detalle: `${d.con_stock ? 'Devolución de stock' : 'Devolución'} #${d.id}${d.venta_id ? ' (de venta #' + d.venta_id + ')' : ''} — ${d.vendedores ? d.vendedores.nombre : ''}${d.motivo ? ' — ' + d.motivo : ''}${marca(d.anulado)}`,
     importe: Number(d.total), signo: d.anulado ? 0 : -1
   }));
   (pagosProv||[]).forEach(p => rows.push({
     tipo: 'pago_proveedor', refId: p.id, fecha: p.created_at, raw: p, anulado: p.anulado,
+    usuario: nombreUsuario(usuarios, p, 'pago_proveedor'),
     cuenta: p.proveedores ? p.proveedores.nombre : '',
     detalle: `Pago a ${p.proveedores ? p.proveedores.nombre : 'proveedor'} (${p.medio_pago}${p.medio_pago === 'cheque' && Number(p.comision_pct) > 0 ? ', ganancia ' + Number(p.comision_pct) + '%' : ''})${p.descripcion ? ' — ' + p.descripcion : ''}${marca(p.anulado)}`,
     importe: Number(p.monto_neto), signo: p.anulado ? 0 : -1
   }));
   (gastos||[]).forEach(g => rows.push({
     tipo: 'gasto', refId: g.id, fecha: g.created_at, raw: g, anulado: g.anulado,
+    usuario: nombreUsuario(usuarios, g, 'gasto'),
     cuenta: '', detalle: g.descripcion + marca(g.anulado), importe: Number(g.monto), signo: g.anulado ? 0 : -1
   }));
   (pagosVend||[]).forEach(p => rows.push({
     tipo: 'pago_vendedor', refId: p.id, fecha: p.created_at, raw: p, anulado: p.anulado,
+    usuario: nombreUsuario(usuarios, p, 'pago_vendedor'),
     cuenta: p.vendedores ? p.vendedores.nombre : '',
     detalle: `Pago de ${p.vendedores ? p.vendedores.nombre : 'vendedor'}${p.descripcion ? ' — ' + p.descripcion : ''}${marca(p.anulado)}`,
     importe: Number(p.monto), signo: p.anulado ? 0 : -1
   }));
   (pagosCli||[]).forEach(p => rows.push({
     tipo: 'pago_cliente', refId: p.id, fecha: p.created_at, raw: p, anulado: p.anulado,
+    usuario: nombreUsuario(usuarios, p, 'pago_cliente'),
     cuenta: p.clientes ? p.clientes.nombre : '',
     detalle: `Pago de ${p.clientes ? p.clientes.nombre : 'cliente'}${p.descripcion ? ' — ' + p.descripcion : ''}${marca(p.anulado)}`,
     importe: Number(p.monto), signo: p.anulado ? 0 : 1
   }));
   (bonis||[]).forEach(b => rows.push({
     tipo: 'bonificacion', refId: b.id, fecha: b.created_at, raw: b, anulado: b.anulado,
+    usuario: nombreUsuario(usuarios, b, 'bonificacion'),
     cuenta: b.vendedores ? b.vendedores.nombre : '',
     detalle: `Bonificación a ${b.vendedores ? b.vendedores.nombre : 'vendedor'}${b.descripcion ? ' — ' + b.descripcion : ''}${marca(b.anulado)}`,
     importe: Number(b.monto), signo: b.anulado ? 0 : -1
   }));
   (stock||[]).forEach(m => rows.push({
     tipo: 'stock', refId: m.id, fecha: m.created_at, raw: m, anulado: false,
+    usuario: nombreUsuario(usuarios, m, 'stock'),
     cuenta: m.productos ? m.productos.nombre : '',
     detalle: `${m.tipo} — ${m.productos ? m.productos.nombre : ''} (${m.cantidad > 0 ? '+' : ''}${Number(m.cantidad)})${m.motivo ? ' — ' + m.motivo : ''}`,
     importe: null, signo: 0
@@ -178,7 +199,7 @@ function render(){
   const list = listaFiltrada();
 
   if(list.length === 0){
-    tbody.innerHTML = `<tr><td colspan="5" class="empty-row">No hay movimientos.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" class="empty-row">No hay movimientos.</td></tr>`;
     return;
   }
   tbody.innerHTML = list.map(m => {
@@ -189,6 +210,7 @@ function render(){
         <td>${dateTime(m.fecha)}</td>
         <td><span class="tag tag-${m.tipo}">${TIPO_LABEL[m.tipo]}</span></td>
         <td>${esc(m.detalle)}</td>
+        <td class="hist-usuario">${esc(m.usuario)}</td>
         <td class="${importeClass}">${m.signo < 0 && m.importe !== null ? '-' : ''}${importeTxt}</td>
         <td>${accionesHtml(m)}</td>
       </tr>`;
@@ -462,13 +484,14 @@ async function guardarEdicion(){
 
 function exportarCSV(){
   const list = listaFiltrada();
-  const header = ['Fecha','Tipo','Cuenta','Detalle','Importe'];
+  const header = ['Fecha','Tipo','Cuenta','Detalle','Usuario','Importe'];
   const lines = [header.join(',')];
   list.forEach(m => {
     const importe = m.importe === null ? '' : (m.signo < 0 ? -m.importe : m.importe);
     const detalle = `"${(m.detalle || '').replace(/"/g,'""')}"`;
     const cuenta = `"${(m.cuenta || '').replace(/"/g,'""')}"`;
-    lines.push([dateTime(m.fecha), TIPO_LABEL[m.tipo], cuenta, detalle, importe].join(','));
+    const usuario = `"${(m.usuario || '').replace(/"/g,'""')}"`;
+    lines.push([dateTime(m.fecha), TIPO_LABEL[m.tipo], cuenta, detalle, usuario, importe].join(','));
   });
   const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);

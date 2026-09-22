@@ -37,6 +37,11 @@
   .btn-yellow{background:#f1c40f;color:#5a4a00;}
   .btn-purple{background:#8e44ad;color:#fff;}
   .btn-orange{background:#e67e22;color:#fff;}
+  .btn-edit{background:#253745;color:#fff;}
+  .btn-undo{background:#fff;border:1px solid #E0A64D;color:#8A5A00;}
+  .btn-undo:hover{background:#FFF6E5;}
+  .row-btns{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;}
+  .row-btns .btn-sm{white-space:nowrap;}
   .btn-green{background:#27ae60;color:#fff;}
   .inv-ingreso{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;border-left:5px solid var(--green);background:#F5FBF8;border-color:#CDEBDD;border-left-color:var(--green);}
   .inv-ingreso h3{margin-bottom:4px;}
@@ -162,6 +167,33 @@
     <div class="modal-actions">
       <button class="modal-cancel" id="imagen-cancel">Cancelar</button>
       <button class="modal-confirm" id="imagen-guardar">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-producto">
+  <div class="modal-box ancho">
+    <h3 id="ep-titulo">Editar producto</h3>
+    <input type="hidden" id="ep-id">
+    <div class="adm-form" style="margin-top:0;">
+      <label style="flex:1 1 100%;font-size:12px;color:var(--muted);margin:0;">Marca<select id="ep-marca" style="width:100%;margin-top:4px;"></select></label>
+    </div>
+    <label>Artículo</label>
+    <input type="text" id="ep-nombre">
+    <label>Presentación</label>
+    <input type="text" id="ep-unidad" placeholder="Ej: 500g">
+    <label>Categoría</label>
+    <select id="ep-categoria"></select>
+    <label>SKU (opcional)</label>
+    <input type="text" id="ep-sku">
+    <div class="adm-form" style="margin-bottom:0;">
+      <input type="number" step="0.01" id="ep-costo" placeholder="Costo $" style="flex:1;">
+      <input type="number" step="0.01" id="ep-precio" placeholder="Precio de venta $" style="flex:1;">
+    </div>
+    <div class="adm-msg" id="ep-err"></div>
+    <div class="modal-actions">
+      <button class="modal-cancel" id="prod-cancel">Cancelar</button>
+      <button class="modal-confirm" id="prod-guardar">Guardar cambios</button>
     </div>
   </div>
 </div>

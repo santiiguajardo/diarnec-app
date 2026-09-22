@@ -54,7 +54,11 @@
   main{max-width:1100px;margin:0 auto;padding:28px 24px 80px;}
   .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:16px;}
   .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:9px;}
-  .thumb{height:90px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:12px;color:#fff;text-align:center;padding:6px;}
+  .thumb{aspect-ratio:1/1;width:100%;border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:12px;color:#fff;text-align:center;padding:6px;}
+  .toolbar{display:flex;justify-content:flex-end;align-items:center;padding:14px 24px 0;gap:8px;}
+  .toolbar label{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);}
+  .toolbar select{padding:8px 12px;border:1px solid var(--line);border-radius:100px;background:#fff;font-size:13px;color:var(--ink);cursor:pointer;}
+  @media (max-width:480px){ .toolbar{justify-content:stretch;} .toolbar label{width:100%;} .toolbar select{flex:1;} }
   .card .name{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:14px;color:var(--navy);}
   .card .unit{font-size:12px;color:var(--muted);}
   .price{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:15px;}
@@ -104,6 +108,17 @@
     <h1>Armá tu carrito y coordinamos por WhatsApp</h1>
     <p>Catálogo para almacenes, autoservicios y comercios gastronómicos · Necochea, Quequén, La Dulce y San Cayetano</p>
   </div>
+  <div class="toolbar">
+    <label>Ordenar por
+      <select id="sort" onchange="setSort(this.value)">
+        <option value="price_desc">Precio: mayor a menor</option>
+        <option value="price_asc">Precio: menor a mayor</option>
+        <option value="marca">Marca (A-Z)</option>
+        <option value="categoria">Categoría (A-Z)</option>
+        <option value="nombre">Nombre (A-Z)</option>
+      </select>
+    </label>
+  </div>
   <div class="filters" id="filters"></div>
   <main><div class="grid" id="grid"></div></main>
 </div>
@@ -134,7 +149,17 @@
 
   let products = [];
   let activeCat = "Todos";
+  let sortBy = "price_desc"; // al abrir, lo más caro primero
   const cart = {};
+
+  const SORTERS = {
+    price_desc: (a, b) => b.price - a.price,
+    price_asc: (a, b) => a.price - b.price,
+    marca: (a, b) => a.brand.localeCompare(b.brand, 'es') || a.name.localeCompare(b.name, 'es'),
+    categoria: (a, b) => a.cat.localeCompare(b.cat, 'es') || a.name.localeCompare(b.name, 'es'),
+    nombre: (a, b) => a.name.localeCompare(b.name, 'es')
+  };
+  function setSort(v){ sortBy = v; renderGrid(); }
 
   function imgFallback(img){
     const div = document.createElement('div');
@@ -144,7 +169,10 @@
     img.replaceWith(div);
   }
 
-  function categories(){ return ["Todos", ...new Set(products.map(p => p.cat))]; }
+  function categories(){
+    const cats = [...new Set(products.map(p => p.cat))].filter(Boolean).sort((a, b) => a.localeCompare(b, 'es'));
+    return ["Todos", ...cats];
+  }
 
   function renderFilters(){
     const el = document.getElementById('filters');
@@ -156,14 +184,15 @@
 
   function renderGrid(){
     const el = document.getElementById('grid');
-    const list = activeCat === "Todos" ? products : products.filter(p => p.cat === activeCat);
+    const base = activeCat === "Todos" ? products : products.filter(p => p.cat === activeCat);
+    const list = [...base].sort(SORTERS[sortBy] || SORTERS.price_desc);
     if(list.length === 0){ el.innerHTML = `<div class="empty-row">No hay productos en esta categoría.</div>`; return; }
     el.innerHTML = list.map(p => {
       const qty = cart[p.id] || 0;
       return `
       <div class="card">
         ${p.image
-          ? `<img src="${p.image}" alt="${p.name}" data-color="${p.color}" data-cat="${p.cat}" style="height:100px;border-radius:10px;object-fit:cover;width:100%;" onerror="imgFallback(this)">`
+          ? `<img src="${p.image}" alt="${p.name}" data-color="${p.color}" data-cat="${p.cat}" style="aspect-ratio:1/1;width:100%;border-radius:10px;object-fit:cover;" onerror="imgFallback(this)">`
           : `<div class="thumb" style="background:${p.color}">${p.cat}</div>`
         }
         <div class="name">${p.name}</div>
@@ -281,7 +310,7 @@
 
   // Los <button onclick="..."> del HTML necesitan estas funciones como globales
   // (un <script type="module"> no las expone en window por defecto).
-  Object.assign(window, { setCat, addToCart, changeQty, openCart, closeCart, checkout, imgFallback });
+  Object.assign(window, { setCat, setSort, addToCart, changeQty, openCart, closeCart, checkout, imgFallback });
 
   (async function init(){
     await loadProducts();
