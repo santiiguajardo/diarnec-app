@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DIARNEC — Historial</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/4.2.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/5.0.8/jspdf.plugin.autotable.min.js"></script>
+<link rel="stylesheet" href="../css/tokens.css">
+<link rel="stylesheet" href="../css/shared.css">
+<link rel="stylesheet" href="../css/admin.css">
+<style>
+  .hist-toolbar{display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap;align-items:center;justify-content:space-between;}
+  .hist-filters{display:flex;gap:8px;flex-wrap:wrap;}
+  .hist-filters button{
+    padding:8px 14px;border:none;border-radius:100px;font-size:12px;font-weight:700;color:#fff;
+    cursor:pointer;opacity:.55;
+  }
+  .hist-filters button.active{opacity:1;box-shadow:0 0 0 2px rgba(0,0,0,.12) inset;}
+  .hist-search{padding:9px 12px;border:1px solid var(--line);border-radius:8px;font-size:13px;min-width:220px;}
+  .tag{display:inline-block;padding:3px 9px;border-radius:100px;font-size:11px;font-weight:700;color:#fff;}
+  .tag-venta, .btn-f-venta{background:#2BB673;}
+  .tag-devolucion, .btn-f-devolucion{background:#8B5E34;}
+  .tag-bonificacion, .btn-f-bonificacion{background:#d4ac0d;}
+  .tag-devolucion_stock, .btn-f-devolucion_stock{background:#A0522D;}
+  .tag-pago_vendedor, .btn-f-pago_vendedor{background:#2c3e70;}
+  .tag-pago_cliente, .btn-f-pago_cliente{background:#16a085;}
+  .tag-pago_proveedor, .btn-f-pago_proveedor{background:#3498db;}
+  .tag-gasto, .btn-f-gasto{background:#c0392b;}
+  .tag-stock, .btn-f-stock{background:#7f8c9a;}
+  .btn-f-todos{background:var(--navy);}
+  .importe-pos{color:#2BB673;font-weight:700;}
+  .importe-neg{color:#C0392B;font-weight:700;}
+  .btn-blue{background:#3498db;color:#fff;}
+  .btn-edit{background:#253745;color:#fff;}
+  tr.anulado td{opacity:.5;}
+  tr.anulado td:nth-child(3){text-decoration:line-through;}
+  tr.anulado td:last-child{opacity:1;}
+  .row-btns{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap;}
+  .row-btns .btn-sm{white-space:nowrap;}
+  .hist-note{font-size:12px;color:var(--muted);margin-top:14px;}
+
+  .modal-overlay{position:fixed;inset:0;background:rgba(18,36,54,.5);display:none;align-items:center;justify-content:center;z-index:50;padding:20px;}
+  .modal-overlay.open{display:flex;}
+  .modal-box{background:#fff;border-radius:14px;padding:24px;width:420px;max-width:100%;max-height:90vh;overflow-y:auto;}
+  .modal-box.wide{width:720px;}
+  .modal-box h3{font-family:'Space Grotesk',sans-serif;color:var(--navy);margin-bottom:14px;}
+  .modal-box label{display:block;font-size:12px;color:var(--muted);margin:10px 0 4px;}
+  .modal-box select, .modal-box input{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px;}
+  .modal-box .modal-actions{display:flex;gap:10px;margin-top:20px;}
+  .modal-box .modal-actions button{flex:1;padding:10px;border:none;border-radius:8px;font-weight:600;cursor:pointer;font-size:13px;}
+  .modal-cancel{background:var(--paper);color:var(--ink);}
+  .modal-confirm{background:var(--navy);color:#fff;}
+  .modal-err{color:#C0392B;font-size:12px;margin-top:8px;min-height:14px;}
+  .ed-note{font-size:12px;color:var(--muted);margin:10px 0 0;}
+  .items-total{text-align:right;font-weight:700;margin-top:10px;font-size:14px;color:var(--navy);}
+  .items-total-sub{text-align:right;margin-top:4px;font-size:13px;color:var(--muted);}
+  .items-neto{color:#1e8e5a;}
+</style>
+</head>
+<body>
+<div id="app-shell"></div>
+
+<div class="modal-overlay" id="modal-editar">
+  <div class="modal-box" id="ed-box">
+    <h3 id="ed-titulo">Modificar movimiento</h3>
+    <div id="ed-form"></div>
+    <div class="modal-err" id="ed-err"></div>
+    <div class="modal-actions"><button class="modal-cancel" id="ed-cancel">Cancelar</button><button class="modal-confirm" id="ed-save">Guardar cambios</button></div>
+  </div>
+</div>
+
+<script type="module" src="../js/modules/historial.js"></script>
+</body>
+</html>
