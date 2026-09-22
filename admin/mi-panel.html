@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DIARNEC — Mi panel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/4.2.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/5.0.8/jspdf.plugin.autotable.min.js"></script>
+<link rel="stylesheet" href="../css/tokens.css">
+<link rel="stylesheet" href="../css/shared.css">
+<style>
+  body{margin:0;background:var(--paper);}
+  .mp-top{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 24px;background:var(--navy);color:#fff;}
+  .mp-brand{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:17px;}
+  .mp-brand small{font-weight:500;font-size:12px;opacity:.7;margin-left:8px;}
+  .mp-user{font-size:13px;display:flex;align-items:center;gap:12px;}
+  .mp-user button{background:rgba(255,255,255,.14);color:#fff;border:none;border-radius:8px;padding:7px 12px;font-size:12px;cursor:pointer;}
+  .mp-tabs{display:flex;gap:6px;padding:12px 24px 0;background:#fff;border-bottom:1px solid var(--line);overflow-x:auto;}
+  .mp-tabs button{background:none;border:none;border-bottom:3px solid transparent;padding:10px 14px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;white-space:nowrap;}
+  .mp-tabs button.active{color:var(--navy);border-bottom-color:var(--navy);}
+  .mp-main{max-width:1000px;margin:0 auto;padding:22px 24px 80px;}
+  .mp-sec{display:none;}
+  .mp-sec.active{display:block;}
+  .mp-card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px;margin-bottom:16px;}
+  .mp-card h3{font-family:'Space Grotesk',sans-serif;color:var(--navy);margin-bottom:12px;font-size:15px;}
+  .mp-card h3 small{font-family:'Inter',sans-serif;font-weight:500;color:var(--muted);font-size:12px;margin-left:6px;}
+
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:16px;}
+  .kpi{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px;}
+  .kpi span{display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px;}
+  .kpi b{font-family:'Space Grotesk',sans-serif;font-size:21px;color:var(--navy);}
+  .kpi.ganancia{background:var(--navy);border-color:var(--navy);}
+  .kpi.ganancia span{color:#B7C6D3;}
+  .kpi.ganancia b{color:#fff;font-size:26px;}
+  .kpi small{display:block;font-size:11px;color:var(--muted);margin-top:4px;}
+  .kpi.ganancia small{color:#B7C6D3;}
+  .pos{color:#C0392B !important;}
+  .neg{color:#1e8e5a !important;}
+
+  .mp-toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px;}
+  .mp-toolbar input[type=text]{flex:1;min-width:200px;padding:9px 12px;border:1px solid var(--line);border-radius:8px;font-size:13px;}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;}
+  .chips button{border:1px solid var(--line);background:#fff;border-radius:100px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;color:var(--muted);}
+  .chips button.active{background:var(--navy);border-color:var(--navy);color:#fff;}
+  .btn-pdf, .btn-main{background:var(--navy);color:#fff;border:none;border-radius:8px;padding:9px 14px;font-size:13px;font-weight:600;cursor:pointer;}
+  .btn-main:disabled, .btn-pdf:disabled{opacity:.6;cursor:wait;}
+  .btn-wa{background:#25D366;color:#fff;border:none;border-radius:8px;padding:9px 14px;font-size:13px;font-weight:600;cursor:pointer;}
+  .btn-wa:disabled{opacity:.6;cursor:wait;}
+  .btn-ghost{background:var(--paper);color:var(--ink);border:none;border-radius:8px;padding:9px 14px;font-size:13px;font-weight:600;cursor:pointer;}
+  .btn-mini{border:none;border-radius:6px;padding:5px 9px;font-size:12px;font-weight:600;cursor:pointer;background:var(--paper);color:var(--ink);}
+  .btn-mini.venta{background:var(--navy);color:#fff;}
+  .btn-mini.del{background:#fbe9e7;color:#C0392B;}
+  .estado-vivo{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px;}
+  .estado-vivo i{width:8px;height:8px;border-radius:50%;background:#2BB673;display:inline-block;}
+
+  /* ---- resumen ---- */
+  .res-cuenta{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;}
+  .cta-tile{border-radius:14px;padding:16px 18px;background:#fff;border:1px solid var(--line);}
+  .cta-tile span{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:6px;}
+  .cta-tile b{font-family:'Space Grotesk',sans-serif;font-size:26px;color:var(--navy);}
+  .cta-tile small{display:block;font-size:11px;color:var(--muted);margin-top:4px;}
+  .cta-tile.ganancia{background:var(--navy);border-color:var(--navy);}
+  .cta-tile.ganancia span, .cta-tile.ganancia small{color:#B7C6D3;}
+  .cta-tile.ganancia b{color:#fff;}
+  .cta-detalle{grid-column:1/-1;font-size:12px;color:var(--muted);}
+  .cta-detalle summary{cursor:pointer;padding:2px 0;}
+  .cta-detalle .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px;}
+  .cta-detalle .grid div{background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 10px;}
+  .cta-detalle .grid b{display:block;color:var(--navy);font-size:14px;margin-top:2px;}
+
+  .sem-head{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:14px;}
+  .sem-nav{display:flex;align-items:center;gap:6px;}
+  .sem-nav button{background:#fff;border:1px solid var(--line);border-radius:8px;width:36px;height:36px;font-size:17px;cursor:pointer;color:var(--navy);}
+  .sem-nav button:disabled{opacity:.35;cursor:default;}
+  .sem-nav select{padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:14px;font-weight:600;color:var(--navy);background:#fff;min-width:210px;}
+  .sem-cmp{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px;}
+  .sem-cmp select{padding:6px 8px;border:1px solid var(--line);border-radius:8px;font-size:12px;background:#fff;}
+  .link-btn{background:none;border:none;color:var(--navy);font-size:12px;font-weight:600;cursor:pointer;text-decoration:underline;padding:0;}
+  .sem-tarjetas{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+  .tk{border-radius:12px;padding:14px;border:1px solid var(--line);background:#fff;border-top-width:4px;}
+  .tk span{display:block;font-size:12px;color:var(--muted);margin-bottom:6px;}
+  .tk b{font-family:'Space Grotesk',sans-serif;font-size:20px;color:var(--navy);}
+  .tk em{display:block;font-style:normal;font-size:11px;color:var(--muted);margin-top:6px;}
+  .tk.c-ret{border-top-color:#122436;} .tk.c-dev{border-top-color:#8B5E34;} .tk.c-pag{border-top-color:#2c3e70;} .tk.c-gan{border-top-color:#2BB673;}
+  .tk.c-gan b{color:#1e8e5a;}
+  .vs{font-weight:700;} .vs.sube{color:#1e8e5a;} .vs.baja{color:#C0392B;} .vs.igual{color:var(--muted);}
+  .sem-saldo{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px 18px;margin-top:14px;padding:12px;background:var(--paper);border-radius:10px;font-size:13px;}
+  .sem-saldo div{text-align:center;}
+  .sem-saldo small{display:block;font-size:11px;color:var(--muted);}
+  .sem-saldo b{font-family:'Space Grotesk',sans-serif;font-size:15px;color:var(--navy);}
+  .sem-saldo .flecha-s{color:var(--muted);font-size:18px;}
+
+  .dia-head, .dia summary{display:grid;grid-template-columns:1.5fr repeat(5,1fr);gap:8px;align-items:center;padding:10px 8px;font-size:13px;}
+  .dia-head{font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);border-bottom:2px solid var(--navy);}
+  .dia-head span:not(:first-child){text-align:right;}
+  .dia{border-bottom:1px solid var(--line);}
+  .dia summary{cursor:pointer;list-style:none;}
+  .dia summary::-webkit-details-marker{display:none;}
+  .dia summary .n{text-align:right;white-space:nowrap;}
+  .dia summary .n small{display:none;font-size:10px;color:var(--muted);}
+  .dia summary .nom b{color:var(--navy);}
+  .dia summary .nom small{display:block;color:var(--muted);font-size:11px;}
+  .dia[open] summary{background:#F6F8FA;}
+  .dia.vacio summary{cursor:default;color:var(--muted);}
+  .dia.vacio .n{color:#B7BEC6;}
+  .dia.futuro{opacity:.4;}
+  .dia.hoy summary{background:#EEF3FF;}
+  .badge-hoy{display:inline-block;background:#173DED;color:#fff;border-radius:100px;padding:2px 8px;font-size:10px;font-weight:700;margin-left:6px;vertical-align:middle;}
+  .dia-movs{padding:0 8px 10px 14px;background:#F6F8FA;}
+  .dia-total{display:grid;grid-template-columns:1.5fr repeat(5,1fr);gap:8px;padding:12px 8px 4px;font-weight:700;font-size:13px;color:var(--navy);}
+  .dia-total span:not(:first-child){text-align:right;}
+  .gan-pos{color:#1e8e5a;} .gan-neg{color:#C0392B;}
+
+  .otras .fila{display:grid;grid-template-columns:1.6fr 1.4fr repeat(4,1fr);gap:8px;align-items:center;width:100%;text-align:left;background:none;border:none;border-bottom:1px solid var(--line);padding:10px 8px;font-size:13px;cursor:pointer;font-family:inherit;color:var(--ink);}
+  .otras .fila:hover{background:#F6F8FA;}
+  .otras .fila.sel{background:#EEF3FF;box-shadow:inset 3px 0 0 #173DED;}
+  .otras .fila.sin{color:var(--muted);}
+  .otras .fila .n{text-align:right;white-space:nowrap;}
+  .otras .cab{cursor:default;font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);border-bottom:2px solid var(--navy);}
+  .otras .cab:hover{background:none;}
+  .otras .barra{background:var(--paper);border-radius:100px;height:8px;overflow:hidden;}
+  .otras .barra i{display:block;height:100%;border-radius:100px;background:#122436;}
+
+  .mov{border-bottom:1px solid var(--line);}
+  .mov summary{display:grid;grid-template-columns:150px 130px 1fr 110px;gap:10px;align-items:center;padding:10px 4px;cursor:pointer;list-style:none;font-size:13px;}
+  .mov summary::-webkit-details-marker{display:none;}
+  .mov.anulado summary{opacity:.5;text-decoration:line-through;}
+  .mov .imp{text-align:right;font-weight:700;}
+  .mov .imp.mas{color:#1e8e5a;}
+  .mov-detalle{padding:0 4px 12px;font-size:12px;}
+  .mov-detalle table{margin-top:4px;}
+  .tag{display:inline-block;padding:3px 9px;border-radius:100px;font-size:11px;font-weight:700;color:#fff;}
+  .tag-venta{background:#2BB673;} .tag-devolucion{background:#8B5E34;} .tag-devolucion_stock{background:#A0522D;}
+  .tag-bonificacion{background:#d4ac0d;} .tag-pago{background:#2c3e70;}
+  .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;border:1px solid rgba(0,0,0,.18);}
+  td.r,th.r{text-align:right;}
+  .empty{color:var(--muted);text-align:center;padding:26px;font-size:13px;}
+
+  /* ---- ranking de clientes ---- */
+  .rank-head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:6px;}
+  .rank-resumen{display:flex;gap:18px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-bottom:6px;}
+  .rank-resumen b{color:var(--navy);font-size:14px;}
+  .podio{display:flex;justify-content:center;align-items:flex-end;gap:10px;margin:18px 0 8px;}
+  .podio-col{flex:1;max-width:220px;text-align:center;}
+  .podio-col .medalla{font-size:30px;line-height:1;}
+  .podio-col .rk-nombre{font-weight:700;font-size:13px;margin-top:4px;word-break:break-word;}
+  .podio-col .rk-monto{font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;color:var(--navy);}
+  .podio-col .rk-sub{font-size:11px;color:var(--muted);margin-bottom:6px;}
+  .podio-bar{border-radius:10px 10px 0 0;color:#fff;font-weight:700;font-size:22px;display:flex;align-items:center;justify-content:center;}
+  .podio-col.p1 .podio-bar{height:96px;background:linear-gradient(#F3C623,#D9A400);}
+  .podio-col.p2 .podio-bar{height:72px;background:linear-gradient(#C9CED6,#9BA3AF);}
+  .podio-col.p3 .podio-bar{height:54px;background:linear-gradient(#D9995B,#B87333);}
+  .rank-fila{display:grid;grid-template-columns:28px minmax(90px,1.2fr) 3fr 110px 48px;gap:10px;align-items:center;padding:7px 0;font-size:13px;border-top:1px solid var(--line);}
+  .rank-fila .pos{color:var(--muted);font-weight:700;text-align:center;}
+  .rank-fila .barra{background:var(--paper);border-radius:100px;height:10px;overflow:hidden;}
+  .rank-fila .barra i{display:block;height:100%;border-radius:100px;background:linear-gradient(90deg,#2BB673,#1e8e5a);}
+  .rank-fila .monto{text-align:right;font-weight:700;}
+  .rank-fila .pct{text-align:right;color:var(--muted);font-size:12px;}
+  .dormidos{margin-top:14px;padding-top:12px;border-top:1px dashed var(--line);}
+  .dormidos h4{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin-bottom:8px;}
+  .dorm-chip{display:inline-flex;align-items:center;gap:6px;background:var(--paper);border-radius:100px;padding:5px 6px 5px 12px;font-size:12px;margin:0 6px 6px 0;}
+  .dorm-chip a{background:#25D366;color:#fff;text-decoration:none;border-radius:100px;padding:3px 9px;font-weight:600;}
+
+  /* ---- modales ---- */
+  .mp-overlay{position:fixed;inset:0;background:rgba(18,36,54,.5);display:none;align-items:center;justify-content:center;z-index:100;padding:16px;}
+  .mp-overlay.open{display:flex;}
+  .mp-box{background:#fff;border-radius:14px;padding:22px;width:460px;max-width:100%;max-height:92vh;overflow-y:auto;}
+  .mp-box.ancho{width:680px;}
+  .mp-box h3{font-family:'Space Grotesk',sans-serif;color:var(--navy);margin-bottom:12px;}
+  .mp-box label{display:block;font-size:12px;color:var(--muted);margin:10px 0 4px;}
+  .mp-box input[type=text], .mp-box input[type=tel], .mp-box input[type=number]{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px;}
+  .mp-box .acciones{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap;}
+  .mp-box .acciones button{flex:1;min-width:120px;}
+  .mp-err{color:#C0392B;font-size:12px;margin-top:8px;min-height:14px;}
+  .mp-hint{font-size:12px;color:var(--muted);margin-top:6px;}
+  .vt-tabla{width:100%;font-size:12px;margin-top:6px;}
+  .vt-tabla th{text-align:left;color:var(--muted);font-weight:500;padding:4px;}
+  .vt-tabla td{padding:4px;}
+  .vt-tabla input{width:70px;padding:6px;font-size:12px;text-align:right;border:1px solid var(--line);border-radius:6px;}
+  .vt-tabla .del{background:none;border:none;color:#C0392B;cursor:pointer;font-size:15px;}
+  .vt-add{margin-top:8px;background:none;border:1px dashed var(--line);border-radius:8px;padding:8px;width:100%;cursor:pointer;color:var(--muted);font-size:12px;}
+  .vt-total{text-align:right;font-size:17px;font-weight:700;color:var(--navy);margin-top:12px;}
+  .vt-gan{text-align:right;font-size:12px;color:#1e8e5a;margin-top:2px;}
+  .remito-meta{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px;}
+  .remito-meta span{display:block;font-size:11px;color:var(--muted);text-transform:uppercase;}
+  .remito-meta b{font-size:13px;}
+  .rem-hist{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--line);font-size:13px;}
+  .rem-hist .info{flex:1;}
+  .rem-hist.anulado .info{opacity:.5;text-decoration:line-through;}
+  @media (max-width:700px){
+    .mov summary{grid-template-columns:1fr auto;}
+    .mov summary .f{grid-column:1/-1;color:var(--muted);font-size:12px;}
+    .rank-fila{grid-template-columns:24px 1fr 90px;}
+    .rank-fila .barra, .rank-fila .pct{display:none;}
+    .remito-meta{grid-template-columns:1fr;}
+    .res-cuenta{grid-template-columns:1fr;}
+    .cta-detalle .grid{grid-template-columns:1fr 1fr;}
+    .sem-tarjetas{grid-template-columns:1fr 1fr;}
+    .sem-nav select{min-width:0;flex:1;}
+    .dia-head, .dia-total{display:none;}
+    .dia summary{grid-template-columns:1fr 1fr;}
+    .dia summary .nom{grid-column:1/-1;}
+    .dia summary .n{text-align:left;}
+    .dia summary .n small{display:block;}
+    .otras .fila{grid-template-columns:1fr 1fr;}
+    .otras .fila .barra, .otras .cab{display:none;}
+  }
+</style>
+</head>
+<body>
+<div class="mp-top">
+  <div class="mp-brand">DIARNEC<small>Mi panel</small></div>
+  <div class="mp-user"><span id="mp-usuario"></span><button id="mp-salir">Cerrar sesión</button></div>
+</div>
+<div class="mp-tabs" id="mp-tabs">
+  <button class="active" data-tab="resumen">Resumen</button>
+  <button data-tab="movimientos">Mis movimientos</button>
+  <button data-tab="cartera">Mi cartera de clientes</button>
+  <button data-tab="precios">Lista de precios</button>
+</div>
+
+<div class="mp-main">
+  <section class="mp-sec active" id="sec-resumen">
+    <div id="res-kpis"></div>
+    <div id="res-semana"></div>
+  </section>
+
+  <section class="mp-sec" id="sec-movimientos">
+    <div class="mp-toolbar"><div class="chips" id="mov-chips"></div></div>
+    <div class="mp-card"><div id="mov-lista"></div></div>
+  </section>
+
+  <section class="mp-sec" id="sec-cartera">
+    <div class="mp-card" id="ranking"></div>
+    <div class="mp-toolbar">
+      <input type="text" id="cartera-buscar" placeholder="Buscar cliente o localidad...">
+      <button class="btn-main" id="cliente-nuevo">+ Nuevo cliente</button>
+    </div>
+    <div class="mp-card" style="overflow-x:auto;">
+      <table>
+        <thead><tr><th>Cliente</th><th>Localidad</th><th>WhatsApp</th><th class="r">Compras</th><th class="r">Comprado</th><th>Última compra</th><th></th></tr></thead>
+        <tbody id="cartera-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="mp-sec" id="sec-precios">
+    <div class="mp-toolbar">
+      <input type="text" id="precios-buscar" placeholder="Buscar marca o producto...">
+      <button class="btn-pdf" id="precios-pdf">⬇ Descargar PDF</button>
+      <span class="estado-vivo"><i></i><span id="precios-estado">Cargando…</span></span>
+    </div>
+    <div class="mp-card">
+      <table>
+        <thead><tr><th>Producto</th><th>Presentación</th><th class="r">Precio final</th><th class="r">Tu comisión</th><th class="r">Tu precio</th></tr></thead>
+        <tbody id="precios-body"></tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<!-- Cliente: alta y modificación -->
+<div class="mp-overlay" id="modal-cliente">
+  <div class="mp-box">
+    <h3 id="cl-titulo">Nuevo cliente</h3>
+    <label>Nombre del cliente *</label>
+    <input type="text" id="cl-nombre" placeholder="Ej: Almacén Don Pepe" autocomplete="off">
+    <label>Localidad</label>
+    <input type="text" id="cl-localidad" autocomplete="off">
+    <label>Contacto (opcional)</label>
+    <input type="text" id="cl-contacto" placeholder="Nombre de la persona" autocomplete="off">
+    <label>WhatsApp / teléfono</label>
+    <input type="tel" id="cl-telefono" placeholder="Ej: 2262 123456" autocomplete="off">
+    <div class="mp-hint">Con el número, el remito se manda por WhatsApp directo a este cliente.</div>
+    <div class="mp-err" id="cl-err"></div>
+    <div class="acciones"><button class="btn-ghost" id="cl-cancelar">Cancelar</button><button class="btn-main" id="cl-guardar">Guardar</button></div>
+  </div>
+</div>
+
+<!-- Venta a un cliente -->
+<div class="mp-overlay" id="modal-venta">
+  <div class="mp-box ancho">
+    <h3 id="vt-titulo">Nueva venta</h3>
+    <div class="mp-hint" style="margin:-6px 0 8px;">Elegí los productos que le vendiste. Se cargan al <b>precio final</b> de la lista (precio + tu comisión, si la hay).</div>
+    <table class="vt-tabla">
+      <thead><tr><th>Producto</th><th>Cant.</th><th>Precio final</th><th>Subtotal</th><th></th></tr></thead>
+      <tbody id="vt-items"></tbody>
+    </table>
+    <button class="vt-add" id="vt-add">+ Agregar producto</button>
+    <div class="vt-total">Total: <span id="vt-total">$0,00</span></div>
+    <div class="vt-gan">Tu ganancia en esta venta: <span id="vt-ganancia">$0,00</span></div>
+    <div class="mp-err" id="vt-err"></div>
+    <div class="acciones"><button class="btn-ghost" id="vt-cancelar">Cancelar</button><button class="btn-main" id="vt-confirmar">Registrar venta y ver remito</button></div>
+  </div>
+</div>
+
+<!-- Remito -->
+<div class="mp-overlay" id="modal-remito">
+  <div class="mp-box ancho">
+    <h3 id="rm-titulo">Remito</h3>
+    <div id="rm-cuerpo"></div>
+    <div class="mp-err" id="rm-err"></div>
+    <div class="acciones">
+      <button class="btn-ghost" id="rm-cerrar">Cerrar</button>
+      <button class="btn-pdf" id="rm-pdf">⬇ Descargar PDF</button>
+      <button class="btn-wa" id="rm-wa">💬 Enviar por WhatsApp</button>
+    </div>
+  </div>
+</div>
+
+<!-- Remitos de un cliente -->
+<div class="mp-overlay" id="modal-remitos">
+  <div class="mp-box">
+    <h3 id="rh-titulo">Remitos</h3>
+    <div id="rh-lista"></div>
+    <div class="mp-err" id="rh-err"></div>
+    <div class="acciones"><button class="btn-ghost" id="rh-cerrar">Cerrar</button></div>
+  </div>
+</div>
+
+<script type="module" src="../js/modules/mi-panel.js"></script>
+</body>
+</html>

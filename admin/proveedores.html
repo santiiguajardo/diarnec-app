@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DIARNEC — Pago a proveedores</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
+<link rel="stylesheet" href="../css/tokens.css">
+<link rel="stylesheet" href="../css/shared.css">
+<link rel="stylesheet" href="../css/admin.css">
+<style>
+  /* Tres bloques con identidad propia: proveedores (azul marino), registrar pago (verde), historial (naranja) */
+  .pv-card{background:#fff;border:1px solid var(--line);border-top:5px solid var(--navy);border-radius:14px;padding:22px;margin-bottom:24px;}
+  .pv-pago{border-top-color:var(--green);background:#F5FBF8;border-color:#CDEBDD;}
+  .pv-hist{border-top-color:var(--orange);}
+  .pv-head{display:flex;align-items:center;gap:14px;margin-bottom:18px;}
+  .pv-ico{width:44px;height:44px;border-radius:12px;background:var(--navy);display:flex;align-items:center;justify-content:center;font-size:22px;flex:none;}
+  .pv-pago .pv-ico{background:var(--green);}
+  .pv-hist .pv-ico{background:var(--orange);}
+  .pv-head h3{font-family:'Space Grotesk',sans-serif;color:var(--navy);font-size:19px;margin:0;}
+  .pv-head p{font-size:13px;color:var(--muted);margin-top:2px;}
+
+  .pv-form{display:grid;gap:12px;align-items:end;margin-bottom:6px;}
+  .pv-form-prov{grid-template-columns:1.4fr 1fr 1fr auto;margin-bottom:10px;}
+  .pv-form-pago{grid-template-columns:1.4fr 1fr 1fr auto;}
+  .pv-form label{display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:600;color:var(--navy);}
+  .pv-form label small{font-weight:400;color:var(--muted);}
+  .pv-form input,.pv-form select{padding:10px 11px;border:1px solid var(--line);border-radius:8px;font-size:14px;width:100%;background:#fff;font-weight:400;color:var(--ink);}
+  .pv-form input:focus,.pv-form select:focus{outline:none;border-color:var(--navy);box-shadow:0 0 0 2px rgba(18,36,54,.12);}
+  .pv-pago .pv-form input:focus,.pv-pago .pv-form select:focus{border-color:var(--green);box-shadow:0 0 0 2px rgba(43,182,115,.2);}
+
+  .pv-btn{padding:11px 18px;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap;}
+  .pv-btn-navy{background:var(--navy);color:#fff;}
+  .pv-btn-green{background:var(--green);color:#fff;font-size:15px;padding:12px 22px;box-shadow:0 2px 0 rgba(0,0,0,.12);}
+  .pv-btn:hover{filter:brightness(1.08);}
+
+  .pv-mini{padding:6px 11px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid transparent;background:#fff;}
+  .pv-mini-grey{color:#4B5563;border-color:#CBD0D8;}
+  .pv-mini-green{color:#1E8E5A;border-color:#9ED9BC;}
+  .pv-mini-red{color:#C0392B;border-color:#F0B9B2;background:#FDECEA;}
+  .pv-mini:hover{filter:brightness(.95);}
+  .pv-acciones{white-space:nowrap;text-align:right;}
+  .pv-acciones .pv-mini + .pv-mini{margin-left:6px;}
+
+  .pv-pill{display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;}
+  .pv-pill-on{background:#DDF3E8;color:#1E8E5A;}
+  .pv-pill-off{background:#E5E7EB;color:#6B7280;}
+  .pv-medio-efectivo{background:#DDF3E8;color:#1E8E5A;}
+  .pv-medio-transferencia{background:#DCE8F7;color:#2A5D9F;}
+  .pv-medio-cheque{background:#FFE9D6;color:#B9590F;}
+  .pv-verde{color:#1E8E5A;}
+
+  .pv-aviso{display:none;margin:10px 0;padding:10px 14px;border-radius:9px;font-size:13px;line-height:1.4;}
+  .pv-aviso.error{display:block;background:#FDECEA;color:#A93226;border:1px solid #F0B9B2;}
+  .pv-aviso.ok{display:block;background:#E6F6EE;color:#1E8E5A;border:1px solid #BFE5D2;}
+
+  .pv-resumen{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
+  .pv-resumen div{background:var(--paper);border-radius:10px;padding:10px 16px;min-width:150px;}
+  .pv-resumen span{display:block;font-size:11px;color:var(--muted);}
+  .pv-resumen b{font-family:'Space Grotesk',sans-serif;font-size:18px;color:var(--navy);}
+
+  .cheque-row{display:none;margin-top:12px;padding:12px;border:1px dashed #9ED9BC;border-radius:10px;background:#fff;gap:12px;align-items:center;flex-wrap:wrap;}
+  .cheque-row.open{display:flex;}
+  .cheque-row label{font-size:12px;color:var(--muted);font-weight:600;}
+  .cheque-row input{width:110px;padding:9px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px;}
+  .cheque-info{font-size:13px;color:var(--ink);}
+  .cheque-info b{color:#1e8e5a;}
+  @media (max-width:800px){ .pv-form-prov,.pv-form-pago{grid-template-columns:1fr 1fr;} .pv-form .pv-btn{grid-column:1 / -1;} .pv-card{padding:16px;} }
+</style>
+</head>
+<body>
+<div id="app-shell"></div>
+<script type="module" src="../js/modules/proveedores.js"></script>
+</body>
+</html>

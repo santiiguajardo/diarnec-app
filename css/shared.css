@@ -1,0 +1,88 @@
+/* Componentes compartidos por las páginas de admin (login + módulos) */
+
+.lock{max-width:340px;margin:60px auto;background:#fff;border:1px solid var(--line);border-radius:14px;padding:28px;text-align:center;}
+.lock h2{font-family:'Space Grotesk',sans-serif;color:var(--navy);margin-bottom:6px;}
+.lock p{font-size:13px;color:var(--muted);margin-bottom:16px;}
+.lock input{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;margin-bottom:10px;font-size:13px;}
+.lock button{width:100%;padding:10px;border:none;border-radius:8px;background:var(--navy);color:#fff;font-weight:600;cursor:pointer;}
+.lock .err{display:block;min-height:16px;}
+
+.admin-section{background:#fff;border:1px solid var(--line);border-radius:14px;padding:22px;margin-bottom:24px;}
+.admin-section h3{font-family:'Space Grotesk',sans-serif;color:var(--navy);font-size:17px;margin-bottom:16px;}
+.stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px;}
+.stat{background:var(--paper);border-radius:10px;padding:14px;}
+.stat span{display:block;font-size:12px;color:var(--muted);}
+.stat b{font-family:'Space Grotesk',sans-serif;font-size:20px;color:var(--navy);}
+
+.form-row{display:grid;grid-template-columns:1.2fr 2fr 1.4fr 1fr 1.4fr 0.8fr auto;gap:8px;margin-bottom:10px;align-items:center;}
+.form-row input, .form-row select{padding:8px;border:1px solid var(--line);border-radius:8px;font-size:13px;width:100%;}
+.form-row input[type=color]{padding:2px;height:36px;}
+.btn-sm{padding:8px 12px;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;}
+.btn-add{background:var(--green);color:#fff;}
+.btn-del{background:#FDECEA;color:#C0392B;}
+.btn-grey{background:#6b7280;color:#fff;}
+
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{text-align:left;color:var(--muted);font-weight:500;padding:8px 6px;border-bottom:1px solid var(--line);font-size:12px;}
+td{padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:middle;}
+.empty-row{color:var(--muted);text-align:center;padding:24px;}
+
+@media (max-width:700px){
+  .form-row{grid-template-columns:1fr 1fr;}
+}
+
+/* Selector de producto con buscador (ver js/shared/product-picker.js) */
+.pp{position:relative;min-width:0;}
+.pp .pp-input{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:12px;background:#fff;text-align:left;}
+.pp .pp-input:focus{outline:none;border-color:var(--navy);box-shadow:0 0 0 2px rgba(18,36,54,.12);}
+.pp-list{position:fixed;z-index:300;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 30px rgba(18,36,54,.22);overflow-y:auto;padding:4px;}
+.pp-opt{display:flex;align-items:baseline;gap:8px;padding:7px 10px;border-radius:7px;cursor:pointer;font-size:13px;}
+.pp-opt.active{background:var(--paper);}
+.pp-opt .pp-dot{width:9px;height:9px;border-radius:50%;flex:none;border:1px solid rgba(0,0,0,.18);align-self:center;}
+.pp-opt b{color:var(--navy);font-weight:700;white-space:nowrap;}
+.pp-opt .pp-name{flex:1;min-width:0;}
+.pp-opt small{color:var(--muted);white-space:nowrap;}
+.pp-empty{padding:12px;text-align:center;color:var(--muted);font-size:12px;}
+
+/* Modal de confirmación/prompt propio (ver js/shared/dialogs.js) */
+.app-confirm-overlay{position:fixed;inset:0;background:rgba(18,36,54,.5);display:flex;align-items:center;justify-content:center;z-index:200;padding:20px;}
+.app-confirm-box{background:#fff;border-radius:14px;padding:22px;width:360px;max-width:100%;}
+.app-confirm-box p{font-size:14px;color:var(--ink);margin-bottom:16px;white-space:pre-line;}
+.app-confirm-box input{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px;margin-bottom:16px;}
+.app-confirm-actions{display:flex;gap:10px;}
+.app-confirm-actions button{flex:1;padding:10px;border:none;border-radius:8px;font-weight:600;cursor:pointer;font-size:13px;}
+.app-confirm-cancel{background:var(--paper);color:var(--ink);}
+.app-confirm-ok{background:var(--navy);color:#fff;}
+
+/* Resumen de venta + descarga de factura (ver js/shared/venta-resumen.js) */
+.vr-overlay{position:fixed;inset:0;background:rgba(18,36,54,.5);display:flex;align-items:center;justify-content:center;z-index:150;padding:20px;}
+.vr-box{background:#fff;border-radius:14px;padding:24px;width:620px;max-width:100%;max-height:90vh;overflow-y:auto;}
+.vr-box h3{font-family:'Space Grotesk',sans-serif;color:var(--navy);margin-bottom:14px;}
+.vr-loading{color:var(--muted);text-align:center;padding:24px;}
+.vr-meta{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;}
+.vr-meta span{display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;}
+.vr-meta b{font-size:13px;color:var(--ink);}
+.vr-table{width:100%;font-size:13px;}
+.vr-table td.r,.vr-table th:not(:first-child){text-align:right;}
+.vr-totals{text-align:right;margin-top:14px;}
+.vr-total{font-size:16px;color:var(--navy);}
+.vr-sub{font-size:13px;color:var(--muted);margin-top:4px;}
+.vr-neto{font-size:14px;color:#1e8e5a;margin-top:4px;}
+.vr-err{color:#C0392B;font-size:12px;margin-top:8px;min-height:14px;}
+.vr-actions{display:flex;gap:10px;margin-top:18px;}
+.vr-actions button{flex:1;padding:11px;border:none;border-radius:8px;font-weight:600;cursor:pointer;font-size:13px;}
+.vr-close{background:var(--paper);color:var(--ink);}
+.vr-download{background:var(--navy);color:#fff;}
+.vr-download:disabled{opacity:.6;cursor:wait;}
+@media (max-width:600px){ .vr-meta{grid-template-columns:1fr;} }
+
+/* Tabla editable de items (ver js/shared/items-editor.js) */
+.ie-table{width:100%;font-size:12px;margin-top:6px;}
+.ie-table th{text-align:left;color:var(--muted);font-weight:500;padding:4px;}
+.ie-table td{padding:4px;}
+.ie-table input{width:100%;min-width:60px;padding:6px;font-size:12px;text-align:right;border:1px solid var(--line);border-radius:6px;}
+.ie-table .ie-sub{white-space:nowrap;}
+.ie-table .ie-neto{color:#1e8e5a;font-weight:600;white-space:nowrap;}
+.ie-table .ie-neto small{display:block;color:var(--muted);font-weight:400;font-size:10px;}
+.ie-table .ie-del{background:none;border:none;color:#C0392B;cursor:pointer;font-size:15px;}
+.ie-add{margin-top:8px;background:none;border:1px dashed var(--line);border-radius:8px;padding:8px;width:100%;cursor:pointer;color:var(--muted);font-size:12px;}

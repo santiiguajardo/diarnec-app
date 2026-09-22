@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DIARNEC — Tienda online</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/4.2.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/5.0.8/jspdf.plugin.autotable.min.js"></script>
+<link rel="stylesheet" href="../css/tokens.css">
+<link rel="stylesheet" href="../css/shared.css">
+<link rel="stylesheet" href="../css/admin.css">
+<style>
+  .tienda-banner{
+    display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;
+    background:var(--navy);color:#fff;border-radius:14px;padding:20px 24px;margin-bottom:24px;
+  }
+  .tienda-banner h2{font-family:'Space Grotesk',sans-serif;font-size:17px;margin-bottom:4px;}
+  .tienda-banner p{font-size:13px;color:#C9D7E0;}
+  .tienda-banner a{
+    background:#16a085;color:#fff;text-decoration:none;padding:11px 18px;border-radius:9px;
+    font-weight:600;font-size:13px;white-space:nowrap;
+  }
+  .pedidos-list{display:flex;flex-direction:column;gap:10px;}
+  .pedido{border:1px solid var(--line);border-radius:10px;overflow:hidden;}
+  .pedido summary{
+    display:flex;align-items:center;gap:14px;padding:13px 16px;cursor:pointer;list-style:none;font-size:13px;
+  }
+  .pedido summary::-webkit-details-marker{display:none;}
+  .pedido summary .num{font-weight:700;color:var(--navy);font-family:'Space Grotesk',sans-serif;}
+  .pedido summary .cliente{flex:1;color:var(--ink);}
+  .pedido summary .fecha{color:var(--muted);}
+  .pedido summary .total{font-weight:700;}
+  .badge{padding:3px 10px;border-radius:100px;font-size:11px;font-weight:700;color:#fff;white-space:nowrap;}
+  .badge.pendiente{background:#e67e22;}
+  .badge.confirmada{background:#2BB673;}
+  .badge.anulada{background:#C0392B;}
+  .pedido-items{padding:0 16px 14px;}
+  .pedido-items table{font-size:12px;}
+  .pedido-acciones{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:12px;}
+  .btn-blue{background:#3498db;color:#fff;}
+  .btn-grey{background:#6b7280;color:#fff;}
+  .btn-grey[disabled]{opacity:.4;cursor:not-allowed;}
+  .pedido-acciones{align-items:center;}
+  .acciones-sep{flex:1;}
+  .estado-seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;}
+  .estado-seg .seg{border:none;background:#fff;color:var(--muted);padding:8px 14px;font-size:12px;font-weight:600;cursor:pointer;border-right:1px solid var(--line);}
+  .estado-seg .seg:last-child{border-right:none;}
+  .estado-seg .seg:hover{background:var(--paper);}
+  .estado-seg .seg-pendiente.active{background:#e67e22;color:#fff;}
+  .estado-seg .seg-confirmada.active{background:#2BB673;color:#fff;}
+  .estado-seg .seg-anulada.active{background:#C0392B;color:#fff;}
+
+  .modal-overlay{position:fixed;inset:0;background:rgba(18,36,54,.5);display:none;align-items:center;justify-content:center;z-index:50;padding:20px;}
+  .modal-overlay.open{display:flex;}
+  .modal-box{background:#fff;border-radius:14px;padding:24px;width:600px;max-width:100%;max-height:90vh;overflow-y:auto;}
+  .modal-box h3{font-family:'Space Grotesk',sans-serif;color:var(--navy);margin-bottom:14px;}
+  .modal-box .modal-actions{display:flex;gap:10px;margin-top:20px;}
+  .modal-box .modal-actions button{flex:1;padding:10px;border:none;border-radius:8px;font-weight:600;cursor:pointer;font-size:13px;}
+  .modal-cancel{background:var(--paper);color:var(--ink);}
+  .modal-confirm{background:var(--navy);color:#fff;}
+  .modal-err{color:#C0392B;font-size:12px;margin-top:8px;min-height:14px;}
+
+  .items-table{width:100%;font-size:12px;margin-top:6px;}
+  .items-table th{text-align:left;color:var(--muted);font-weight:500;padding:4px;}
+  .items-table td{padding:4px;}
+  .items-table select{padding:6px;font-size:12px;}
+  .items-table input{padding:6px;font-size:12px;text-align:right;width:100%;}
+  .items-table .item-del{background:none;border:none;color:#C0392B;cursor:pointer;font-size:15px;}
+  .items-add{margin-top:8px;background:none;border:1px dashed var(--line);border-radius:8px;padding:8px;width:100%;cursor:pointer;color:var(--muted);font-size:12px;}
+  .items-total{text-align:right;font-weight:700;margin-top:10px;font-size:14px;color:var(--navy);}
+</style>
+</head>
+<body>
+<div id="app-shell"></div>
+
+<div class="modal-overlay" id="modal-editar">
+  <div class="modal-box">
+    <h3>Editar pedido <span id="editar-num"></span></h3>
+    <table class="items-table">
+      <thead><tr><th>Producto</th><th>Cant.</th><th>Precio</th><th>Subtotal</th><th></th></tr></thead>
+      <tbody id="editar-items"></tbody>
+    </table>
+    <button class="items-add" id="editar-add">+ Agregar producto</button>
+    <div class="items-total">Total: <span id="editar-total">$0,00</span></div>
+    <div class="modal-err" id="editar-err"></div>
+    <div class="modal-actions">
+      <button class="modal-cancel" id="editar-cancelar">Cancelar</button>
+      <button class="modal-confirm" id="editar-guardar">Guardar cambios</button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="../js/modules/tienda-online.js"></script>
+</body>
+</html>

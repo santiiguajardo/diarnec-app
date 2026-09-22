@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DIARNEC — Panel de gestión</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
+<link rel="stylesheet" href="../css/tokens.css">
+<link rel="stylesheet" href="../css/shared.css">
+<style>
+  body{display:flex;min-height:100vh;align-items:center;justify-content:center;}
+  .lock{margin:0;}
+</style>
+</head>
+<body>
+
+<div id="admin-lock" class="lock">
+  <h2>Panel de gestión</h2>
+  <p>Ingresá con tu usuario y contraseña.</p>
+  <input type="text" id="admin-user" placeholder="Usuario" autocomplete="username">
+  <input type="password" id="admin-pass" placeholder="Contraseña" autocomplete="current-password">
+  <button id="login-btn">Ingresar</button>
+  <div class="err" id="lock-err"></div>
+</div>
+
+<script type="module" src="../js/modules/login.js"></script>
+</body>
+</html>

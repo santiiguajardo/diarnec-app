@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DIARNEC — Ventas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/4.2.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/5.0.8/jspdf.plugin.autotable.min.js"></script>
+<link rel="stylesheet" href="../css/tokens.css">
+<link rel="stylesheet" href="../css/shared.css">
+<link rel="stylesheet" href="../css/admin.css">
+<style>
+  .ventas-top{display:grid;grid-template-columns:265px 1fr;gap:20px;align-items:start;}
+  .side-btns{display:flex;flex-direction:column;gap:10px;}
+  /* Botones grandes, con ícono propio y un color bien distinto cada uno: pensado para que se
+     reconozcan de un vistazo (sin tener que leer el texto) — este panel lo usa gente que no es
+     necesariamente de sistemas. */
+  .side-btn{display:flex;align-items:center;gap:10px;padding:13px 14px;border:none;border-radius:10px;
+    color:#fff;font-weight:700;font-size:14.5px;cursor:pointer;text-align:left;line-height:1.25;}
+  .side-btn:hover{filter:brightness(1.07);}
+  .side-btn:active{filter:brightness(0.95);}
+  .side-ico{font-size:19px;flex:none;width:24px;text-align:center;}
+  .side-sep{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:20px 0 8px;font-weight:700;}
+  .side-sep:first-child{margin-top:0;}
+
+  /* Gestión de cuentas: configuración, se usa poco — estilo claro/contorno para que se note que
+     es distinto de las 5 operaciones del día a día. */
+  .btn-vendedores, .btn-comisiones, .btn-clientes{background:#fff;color:var(--navy);border:1.5px solid #D7DCE1;}
+  .btn-vendedores:hover, .btn-comisiones:hover, .btn-clientes:hover{background:var(--paper);filter:none;}
+
+  /* Operaciones diarias, en el orden en que pasan: cada una con su color, bien distinto de la anterior. */
+  .btn-op1{background:#2BB673;} /* 1. Retiro/venta — verde: arranca el día */
+  .btn-op2{background:#E67E22;} /* 2. Devoluciones — naranja: mercadería que vuelve */
+  .btn-op3{background:#8E44AD;} /* 3. Bonificación — violeta */
+  .btn-op4{background:#2E86DE;} /* 4. Pago — azul: cierre de cuentas */
+  .btn-op5{background:#16A085;} /* 5. Devolución de stock — verde azulado: vuelve al depósito */
+  .debe{font-weight:700;}
+  .debe.pos{color:#C0392B;}
+  .debe.zero{color:var(--muted);}
+  .cta-head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:14px;}
+  .cta-head h3{margin:0;}
+  .btn-limpiar{background:#fff;border:1px solid #E0A64D;color:#8A5A00;padding:8px 13px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;}
+  .btn-limpiar:hover{background:#FFF6E5;}
+  @media (max-width:900px){ .ventas-top{grid-template-columns:1fr;} }
+
+  .modal-overlay{position:fixed;inset:0;background:rgba(18,36,54,.5);display:none;align-items:center;justify-content:center;z-index:50;padding:20px;}
+  .modal-overlay.open{display:flex;}
+  .modal-box{background:#fff;border-radius:14px;padding:24px;width:400px;max-width:100%;max-height:90vh;overflow-y:auto;}
+  .modal-box.wide{width:720px;}
+  .modal-box h3{font-family:'Space Grotesk',sans-serif;color:var(--navy);margin-bottom:14px;}
+  .modal-box label{display:block;font-size:12px;color:var(--muted);margin:10px 0 4px;}
+  .modal-box select, .modal-box input{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px;}
+  .modal-box .modal-actions{display:flex;gap:10px;margin-top:20px;}
+  .modal-box .modal-actions button{flex:1;padding:10px;border:none;border-radius:8px;font-weight:600;cursor:pointer;font-size:13px;}
+  .modal-cancel{background:var(--paper);color:var(--ink);}
+  .modal-confirm{background:var(--navy);color:#fff;}
+  .modal-err{color:#C0392B;font-size:12px;margin-top:8px;min-height:14px;}
+  .modal-hint{font-size:12px;color:var(--muted);margin:10px 0 4px;}
+  .pedido-banner{background:#eef6f1;border:1px solid #bfe0cd;color:#1e6b46;border-radius:8px;padding:9px 12px;font-size:12px;margin-bottom:4px;}
+  .tag-fijo{display:inline-block;margin-left:6px;padding:2px 8px;border-radius:100px;background:var(--paper);color:var(--muted);font-size:10px;font-weight:600;}
+
+  .mini-form{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;}
+  .mini-form input{flex:1;min-width:90px;width:auto;}
+  .mini-form select{flex:1;min-width:90px;width:auto;}
+  .mini-list td select{width:100%;padding:5px 6px;font-size:12px;border:1px solid var(--line);border-radius:6px;}
+  .mini-form button{flex:none;padding:9px 12px;border:none;border-radius:8px;background:var(--green);color:#fff;font-weight:600;font-size:12px;cursor:pointer;}
+  .mini-list{max-height:200px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;}
+  .mini-list table{font-size:12px;}
+  .mini-list .inactive-row{opacity:.45;}
+  .mini-list td .cell-pct{width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:6px;font-size:12px;text-align:right;}
+  .mini-list td .cell-pct.saved{border-color:#2BB673;box-shadow:0 0 0 2px rgba(43,182,115,.2);}
+  .mini-list td .row-actions{display:flex;gap:6px;justify-content:flex-end;}
+  .btn-grey{background:#6b7280;color:#fff;}
+
+  .items-table{width:100%;font-size:12px;margin-top:6px;}
+  .items-table th{text-align:left;color:var(--muted);font-weight:500;padding:4px;}
+  .items-table td{padding:4px;}
+  .items-table select{padding:6px;font-size:12px;}
+  .items-table input{padding:6px;font-size:12px;text-align:right;}
+  .items-table .item-del{background:none;border:none;color:#C0392B;cursor:pointer;font-size:15px;}
+  .items-add{margin-top:8px;background:none;border:1px dashed var(--line);border-radius:8px;padding:8px;width:100%;cursor:pointer;color:var(--muted);font-size:12px;}
+  .items-total{text-align:right;font-weight:700;margin-top:10px;font-size:14px;color:var(--navy);}
+  .items-total-sub{text-align:right;margin-top:4px;font-size:13px;color:var(--muted);}
+  .items-neto{color:#1e8e5a;}
+  .items-table .item-neto{color:#1e8e5a;font-weight:600;white-space:nowrap;}
+  .items-table .item-neto small{display:block;color:var(--muted);font-weight:400;font-size:10px;}
+</style>
+</head>
+<body>
+<div id="app-shell"></div>
+
+<div class="modal-overlay" id="modal-vendedores">
+  <div class="modal-box">
+    <h3>Gestionar vendedores</h3>
+    <div class="mini-form">
+      <input type="text" id="vd-nombre" placeholder="Nombre">
+      <button id="vd-agregar">+ Agregar</button>
+    </div>
+    <div class="mini-list"><table><thead><tr><th>Nombre</th><th></th></tr></thead><tbody id="vd-body"></tbody></table></div>
+    <div class="modal-actions"><button class="modal-cancel" id="vd-cerrar">Cerrar</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-comisiones">
+  <div class="modal-box">
+    <h3>Administrar comisiones</h3>
+    <label>Vendedor</label>
+    <select id="cm-vendedor"></select>
+    <div id="cm-detalle" style="display:none;">
+      <p style="font-size:12px;color:var(--muted);margin:12px 0 8px;">Comisión de este vendedor por cada marca. Sin valor = 0%.</p>
+      <div class="mini-list" style="max-height:300px;"><table><thead><tr><th>Marca</th><th style="width:120px;">Comisión %</th></tr></thead><tbody id="cm-body"></tbody></table></div>
+    </div>
+    <div class="modal-actions"><button class="modal-cancel" id="cm-cerrar">Cerrar</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-clientes">
+  <div class="modal-box">
+    <h3>Gestionar clientes</h3>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:10px;">Estos son tus clientes directos. Los que cada vendedor carga en su propia cartera no aparecen aca, son cuenta de ese vendedor.</p>
+    <div class="mini-form">
+      <input type="text" id="cl-nombre" placeholder="Nombre">
+      <input type="text" id="cl-localidad" placeholder="Localidad" style="max-width:120px;">
+      <button id="cl-agregar">+ Agregar</button>
+    </div>
+    <div class="mini-list"><table><thead><tr><th>Nombre</th><th>Localidad</th><th></th></tr></thead><tbody id="cl-body"></tbody></table></div>
+    <div class="modal-actions"><button class="modal-cancel" id="cl-cerrar">Cerrar</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-retiro">
+  <div class="modal-box wide">
+    <h3 id="rt-titulo">1. Cargar retiro / venta</h3>
+    <div class="pedido-banner" id="rt-pedido" style="display:none;"></div>
+    <label>Vendedor</label>
+    <select id="rt-vendedor"></select>
+    <div id="rt-cliente-wrap">
+      <label>Cliente (opcional)</label>
+      <select id="rt-cliente"><option value="">Sin cliente asignado</option></select>
+    </div>
+    <table class="items-table">
+      <thead><tr><th>Producto</th><th>Cant.</th><th>Precio</th><th>Subtotal</th><th title="Subtotal menos la comisión del vendedor">Neto (- comisión)</th><th></th></tr></thead>
+      <tbody id="rt-items"></tbody>
+    </table>
+    <button class="items-add" id="rt-add">+ Agregar producto</button>
+    <div class="items-total">Total: <span id="rt-total">$0,00</span></div>
+    <div class="items-total-sub">Comisión del vendedor: <span id="rt-comision">$0,00</span></div>
+    <div class="items-total items-neto">Neto para la distribuidora: <span id="rt-neto">$0,00</span></div>
+    <div class="modal-err" id="rt-err"></div>
+    <div class="modal-actions"><button class="modal-cancel" id="rt-cerrar">Cancelar</button><button class="modal-confirm" id="rt-confirmar">Confirmar</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-devolucion">
+  <div class="modal-box wide">
+    <h3>2. Devoluciones</h3>
+    <label>Vendedor</label>
+    <select id="dv-vendedor"></select>
+    <label>Motivo</label>
+    <input type="text" id="dv-motivo" placeholder="Ej: producto vencido, no se vendió, etc.">
+    <p class="modal-hint">La mercadería devuelta no vuelve al stock. Se acredita en la cuenta del vendedor con su comisión restada.</p>
+    <table class="items-table">
+      <thead><tr><th>Producto</th><th>Cant.</th><th>Precio</th><th>Subtotal</th><th title="Subtotal menos la comisión del vendedor">Neto (- comisión)</th><th></th></tr></thead>
+      <tbody id="dv-items"></tbody>
+    </table>
+    <button class="items-add" id="dv-add">+ Agregar producto</button>
+    <div class="items-total">Total: <span id="dv-total">$0,00</span></div>
+    <div class="items-total-sub">Comisión del vendedor: <span id="dv-comision">$0,00</span></div>
+    <div class="items-total items-neto">Saldo a favor del vendedor: <span id="dv-neto">$0,00</span></div>
+    <div class="modal-err" id="dv-err"></div>
+    <div class="modal-actions"><button class="modal-cancel" id="dv-cerrar">Cancelar</button><button class="modal-confirm" id="dv-confirmar">Confirmar</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-bonificacion">
+  <div class="modal-box wide">
+    <h3>3. Cargar bonificación</h3>
+    <label>Vendedor</label>
+    <select id="bf-vendedor"></select>
+    <label>Descripción (opcional)</label>
+    <input type="text" id="bf-descripcion" placeholder="Ej: producto en mal estado, descuento acordado, etc.">
+    <p class="modal-hint">La mercadería bonificada no vuelve al stock. Se acredita en la cuenta del vendedor con su comisión restada.</p>
+    <table class="items-table">
+      <thead><tr><th>Producto</th><th>Cant.</th><th>Precio</th><th>Subtotal</th><th title="Subtotal menos la comisión del vendedor">Neto (- comisión)</th><th></th></tr></thead>
+      <tbody id="bf-items"></tbody>
+    </table>
+    <button class="items-add" id="bf-add">+ Agregar producto</button>
+    <div class="items-total">Total: <span id="bf-total">$0,00</span></div>
+    <div class="items-total-sub">Comisión del vendedor: <span id="bf-comision">$0,00</span></div>
+    <div class="items-total items-neto">Saldo a favor del vendedor: <span id="bf-neto">$0,00</span></div>
+    <div class="modal-err" id="bf-err"></div>
+    <div class="modal-actions"><button class="modal-cancel" id="bf-cerrar">Cancelar</button><button class="modal-confirm" id="bf-confirmar">Confirmar</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-devstock">
+  <div class="modal-box wide">
+    <h3>5. Devolución de stock</h3>
+    <label>Vendedor</label>
+    <select id="ds-vendedor"></select>
+    <label>Motivo (opcional)</label>
+    <input type="text" id="ds-motivo" placeholder="Ej: mercadería en buen estado que no se vendió">
+    <p class="modal-hint">La mercadería vuelve a ingresar al stock. Se acredita en la cuenta del vendedor con su comisión restada.</p>
+    <table class="items-table">
+      <thead><tr><th>Producto</th><th>Cant.</th><th>Precio</th><th>Subtotal</th><th title="Subtotal menos la comisión del vendedor">Neto (- comisión)</th><th></th></tr></thead>
+      <tbody id="ds-items"></tbody>
+    </table>
+    <button class="items-add" id="ds-add">+ Agregar producto</button>
+    <div class="items-total">Total: <span id="ds-total">$0,00</span></div>
+    <div class="items-total-sub">Comisión del vendedor: <span id="ds-comision">$0,00</span></div>
+    <div class="items-total items-neto">Saldo a favor del vendedor: <span id="ds-neto">$0,00</span></div>
+    <div class="modal-err" id="ds-err"></div>
+    <div class="modal-actions"><button class="modal-cancel" id="ds-cerrar">Cancelar</button><button class="modal-confirm" id="ds-confirmar">Confirmar</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-pago">
+  <div class="modal-box">
+    <h3>4. Registrar pago</h3>
+    <label>¿Quién paga?</label>
+    <select id="pg-tipo">
+      <option value="vendedor">Vendedor (salda su deuda)</option>
+      <option value="cliente">Cliente (salda su cuenta)</option>
+    </select>
+    <label id="pg-entidad-label">Vendedor</label>
+    <select id="pg-entidad"></select>
+    <label>Monto $</label>
+    <input type="number" step="0.01" id="pg-monto">
+    <label>Medio de pago</label>
+    <select id="pg-medio">
+      <option value="efectivo">Efectivo</option>
+      <option value="transferencia">Transferencia</option>
+      <option value="cheque">Cheque</option>
+    </select>
+    <label>Descripción (opcional)</label>
+    <input type="text" id="pg-descripcion">
+    <div class="modal-err" id="pg-err"></div>
+    <div class="modal-actions"><button class="modal-cancel" id="pg-cerrar">Cancelar</button><button class="modal-confirm" id="pg-confirmar">Confirmar</button></div>
+  </div>
+</div>
+
+<script type="module" src="../js/modules/ventas.js"></script>
+</body>
+</html>

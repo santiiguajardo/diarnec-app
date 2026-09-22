@@ -1,0 +1,45 @@
+/* Shell de las páginas de admin: sidebar de navegación + contenido */
+
+body{margin:0;}
+.admin-shell{display:flex;min-height:100vh;align-items:stretch;}
+
+.admin-sidebar{
+  width:220px;flex:none;background:var(--navy);color:#fff;
+  padding:20px 0;display:flex;flex-direction:column;
+}
+.admin-sidebar .brand{
+  font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:17px;
+  padding:0 20px 18px;border-bottom:1px solid rgba(255,255,255,.12);margin-bottom:10px;
+}
+.admin-sidebar nav{display:flex;flex-direction:column;flex:1;overflow-y:auto;}
+.admin-sidebar a{
+  color:#C9D7E0;text-decoration:none;font-size:13px;padding:10px 20px;
+  border-left:3px solid transparent;display:flex;align-items:center;gap:10px;
+}
+.admin-sidebar a .dot{width:9px;height:9px;border-radius:50%;flex:none;box-shadow:0 0 0 2px rgba(255,255,255,.15);}
+.admin-sidebar a:hover{background:rgba(255,255,255,.06);color:#fff;}
+.admin-sidebar a.active{background:rgba(255,255,255,.1);color:#fff;border-left-color:var(--mod-color, var(--orange));font-weight:600;}
+.admin-sidebar .tienda-link{
+  margin:10px 20px 0;padding-top:14px;border-top:1px solid rgba(255,255,255,.12);
+  font-size:12px;color:#8FA6B8;
+}
+.admin-sidebar .tienda-link a{padding:6px 0;color:#C9D7E0;}
+
+.admin-topbar{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:16px 28px;background:#fff;border-bottom:1px solid var(--line);
+}
+.admin-topbar h1{font-family:'Space Grotesk',sans-serif;font-size:19px;color:var(--navy);}
+.admin-topbar .user-email{font-size:12px;color:var(--muted);margin-right:14px;}
+
+.admin-main{flex:1;display:flex;flex-direction:column;min-width:0;}
+.admin-content{max-width:1100px;width:100%;margin:0 auto;padding:24px 28px 80px;}
+
+@media (max-width:800px){
+  .admin-shell{flex-direction:column;}
+  .admin-sidebar{width:100%;padding:12px 0;}
+  .admin-sidebar nav{flex-direction:row;overflow-x:auto;}
+  .admin-sidebar a{border-left:none;border-bottom:3px solid transparent;white-space:nowrap;}
+  .admin-sidebar a.active{border-left-color:transparent;border-bottom-color:var(--mod-color, var(--orange));}
+  .admin-sidebar .tienda-link{display:none;}
+}

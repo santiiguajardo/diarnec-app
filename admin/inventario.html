@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DIARNEC — Inventario y precios</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/4.2.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/5.0.8/jspdf.plugin.autotable.min.js"></script>
+<link rel="stylesheet" href="../css/tokens.css">
+<link rel="stylesheet" href="../css/shared.css">
+<link rel="stylesheet" href="../css/admin.css">
+<style>
+  .stats-bar{
+    display:flex;gap:24px;background:var(--navy);color:#fff;border-radius:14px;
+    padding:16px 24px;margin-bottom:20px;font-family:'Space Grotesk',sans-serif;
+    flex-wrap:wrap;
+  }
+  .stats-bar b{font-size:17px;}
+  .stats-bar span{opacity:.7;font-weight:500;font-family:'Inter',sans-serif;font-size:13px;margin-right:6px;}
+  .inv-actions{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+  .inv-toolbar{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center;}
+  .inv-toolbar input[type=text]{flex:1;min-width:180px;padding:9px 12px;border:1px solid var(--line);border-radius:8px;font-size:13px;}
+  .inv-toolbar select{padding:9px 12px;border:1px solid var(--line);border-radius:8px;font-size:13px;}
+  .inv-toolbar label{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);white-space:nowrap;}
+  table.inv td, table.inv th{white-space:nowrap;}
+  table.inv td.wrap{white-space:normal;}
+  .cell-input{width:85px;padding:5px 6px;border:1px solid rgba(0,0,0,.15);border-radius:6px;font-size:13px;text-align:right;background:rgba(255,255,255,.6);}
+  .margen{font-weight:700;}
+  .margen.low{color:#C0392B;}
+  .cant-badge{display:inline-flex;align-items:center;gap:6px;}
+  .cant-badge b{min-width:28px;text-align:right;}
+  .low-stock{color:#C0392B;font-weight:700;}
+  .inactive-row{opacity:.45;}
+  .btn-yellow{background:#f1c40f;color:#5a4a00;}
+  .btn-purple{background:#8e44ad;color:#fff;}
+  .btn-orange{background:#e67e22;color:#fff;}
+  .btn-green{background:#27ae60;color:#fff;}
+  .inv-ingreso{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;border-left:5px solid var(--green);background:#F5FBF8;border-color:#CDEBDD;border-left-color:var(--green);}
+  .inv-ingreso h3{margin-bottom:4px;}
+  .inv-ingreso p{font-size:13px;color:var(--muted);max-width:520px;}
+  .inv-ingreso-btns{display:flex;gap:10px;flex-wrap:wrap;}
+  .inv-ingreso-btns .btn-sm{padding:12px 18px;font-size:14px;border-radius:10px;font-weight:700;}
+  .btn-ingreso{background:var(--green);color:#fff;}
+  .btn-remito{background:var(--navy);color:#fff;}
+  .inv-toolbar label select{margin-left:2px;}
+
+  .modal-overlay{position:fixed;inset:0;background:rgba(18,36,54,.5);display:none;align-items:center;justify-content:center;z-index:50;}
+  .modal-overlay.open{display:flex;}
+  .modal-box{background:#fff;border-radius:14px;padding:26px;width:360px;max-width:92vw;}
+  .modal-box h3{font-family:'Space Grotesk',sans-serif;color:var(--navy);margin-bottom:6px;}
+  .modal-box p{font-size:13px;color:var(--muted);margin-bottom:16px;}
+  .modal-box label{display:block;font-size:12px;color:var(--muted);margin:12px 0 4px;}
+  .modal-box select, .modal-box input{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px;}
+  .modal-box .modal-actions{display:flex;gap:10px;margin-top:20px;}
+  .modal-box .modal-actions button{flex:1;padding:10px;border:none;border-radius:8px;font-weight:600;cursor:pointer;font-size:13px;}
+  .modal-cancel{background:var(--paper);color:var(--ink);}
+  .modal-confirm{background:var(--navy);color:#fff;}
+  .pdf-choice{display:flex;gap:10px;}
+  .pdf-choice button{flex:1;padding:16px 10px;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-size:13px;color:#fff;}
+
+  .modal-box.ancho{width:600px;}
+  .adm-form{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:14px 0 12px;}
+  .adm-form input[type=text]{flex:1;min-width:150px;width:auto;}
+  .adm-form select{flex:1;min-width:130px;width:auto;}
+  .adm-form button{flex:none;padding:9px 14px;border:none;border-radius:8px;background:var(--green);color:#fff;font-weight:600;font-size:12px;cursor:pointer;}
+  .adm-form label.chk, .adm-tabla label.chk{display:flex;align-items:center;gap:5px;margin:0;font-size:12px;color:var(--ink);white-space:nowrap;}
+  .adm-form label.chk input, .adm-tabla label.chk input{width:auto;}
+  input[type=color].adm-color{width:42px;height:36px;padding:2px;flex:none;cursor:pointer;}
+  .adm-list{max-height:340px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;}
+  .adm-tabla{font-size:12px;}
+  .adm-tabla td{padding:6px;}
+  .adm-tabla input[type=text], .adm-tabla select{padding:6px 8px;font-size:12px;}
+  .adm-tabla input.saved, .adm-tabla select.saved{border-color:#2BB673;box-shadow:0 0 0 2px rgba(43,182,115,.2);}
+  .adm-msg{font-size:12px;color:#C0392B;min-height:14px;margin-top:8px;}
+  .thumb-btn{width:34px;height:34px;border-radius:8px;border:1px solid rgba(0,0,0,.15);cursor:pointer;padding:0;overflow:hidden;background:rgba(255,255,255,.6);display:flex;align-items:center;justify-content:center;font-size:15px;}
+  .thumb-btn img{width:100%;height:100%;object-fit:cover;}
+  .modal-imagen-preview{width:100%;height:140px;border-radius:10px;background:var(--paper);display:flex;align-items:center;justify-content:center;margin-top:12px;overflow:hidden;color:var(--muted);font-size:12px;}
+  .modal-imagen-preview img{width:100%;height:100%;object-fit:contain;}
+</style>
+</head>
+<body>
+
+<div id="app-shell"></div>
+
+<div class="modal-overlay" id="modal-marcas">
+  <div class="modal-box ancho">
+    <h3>Marcas</h3>
+    <p>Agregá marcas nuevas, cambiales el nombre, el color o el proveedor, o eliminá las que no uses. El color se usa en el inventario y en las listas de precios.</p>
+    <div class="adm-form">
+      <input type="text" id="mk-nombre" placeholder="Nombre de la marca">
+      <input type="color" class="adm-color" id="mk-color" value="#e4e2da" title="Color de la marca">
+      <select id="mk-prov"></select>
+      <button id="mk-add">+ Agregar marca</button>
+    </div>
+    <div class="adm-list"><table class="adm-tabla"><tbody id="mk-body"></tbody></table></div>
+    <div class="adm-msg" id="mk-msg"></div>
+    <div class="modal-actions"><button class="modal-cancel" id="mk-cerrar">Cerrar</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-categorias">
+  <div class="modal-box ancho">
+    <h3>Categorías</h3>
+    <p>Agregá categorías nuevas, editalas o eliminá las que no uses. Las <b>por peso</b> (como fiambres y quesos) permiten cantidades con decimales; el resto se maneja por unidad, en números enteros.</p>
+    <div class="adm-form">
+      <input type="text" id="ct-nombre" placeholder="Nombre de la categoría">
+      <input type="color" class="adm-color" id="ct-color" value="#2BB673" title="Color de la categoría">
+      <label class="chk"><input type="checkbox" id="ct-peso"> Por peso</label>
+      <button id="ct-add">+ Agregar categoría</button>
+    </div>
+    <div class="adm-list"><table class="adm-tabla"><tbody id="ct-body"></tbody></table></div>
+    <div class="adm-msg" id="ct-msg"></div>
+    <div class="modal-actions"><button class="modal-cancel" id="ct-cerrar">Cerrar</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-masiva">
+  <div class="modal-box">
+    <h3>Actualización masiva de precios</h3>
+    <p>Aplica un % de aumento (o descuento, con signo negativo) a costo y/o precio de venta.</p>
+    <label>Marca</label>
+    <select id="masiva-marca"><option value="">Todas las marcas</option></select>
+    <label>Porcentaje (ej: 5 o -10)</label>
+    <input type="number" step="0.1" id="masiva-pct" placeholder="5">
+    <label>Aplicar a</label>
+    <select id="masiva-scope">
+      <option value="ambos">Costo y precio de venta</option>
+      <option value="precio">Solo precio de venta</option>
+      <option value="costo">Solo costo</option>
+    </select>
+    <div class="modal-actions">
+      <button class="modal-cancel" id="masiva-cancel">Cancelar</button>
+      <button class="modal-confirm" id="masiva-confirm">Aplicar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-pdf">
+  <div class="modal-box">
+    <h3>Formato de exportación</h3>
+    <p>¿En qué formato querés el PDF? Elegí "Color" para enviar por WhatsApp, o "Blanco y negro" para imprimir en papel.</p>
+    <div class="pdf-choice">
+      <button style="background:var(--navy);" id="pdf-color">A color<br><small style="font-weight:400;">(Digital)</small></button>
+      <button style="background:#6b7280;" id="pdf-bn">Blanco y negro<br><small style="font-weight:400;">(Impresión)</small></button>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-cancel" id="pdf-cancel">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-imagen">
+  <div class="modal-box">
+    <h3>Foto del producto</h3>
+    <p id="imagen-producto-nombre"></p>
+    <label>URL de la imagen</label>
+    <input type="text" id="imagen-url" placeholder="https://...">
+    <div class="modal-imagen-preview" id="imagen-preview">Sin imagen</div>
+    <div class="modal-actions">
+      <button class="modal-cancel" id="imagen-cancel">Cancelar</button>
+      <button class="modal-confirm" id="imagen-guardar">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="../js/modules/inventario.js"></script>
+</body>
+</html>

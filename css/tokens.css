@@ -1,0 +1,7 @@
+:root{
+  --navy:#122436; --green:#2BB673; --orange:#FF8A3D;
+  --paper:#F2F1EC; --ink:#1A1A1A; --muted:#6B7280; --line:#E4E2DA;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Inter',sans-serif;background:var(--paper);color:var(--ink);}
+input,select{font-family:'Inter',sans-serif;}
