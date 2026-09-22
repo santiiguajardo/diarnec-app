@@ -1,5 +1,5 @@
 import { sb } from '../shared/supabase-client.js';
-import { requireAuth } from '../shared/auth-guard.js';
+import { requireAdmin } from '../shared/auth-guard.js';
 import { mountLayout } from '../shared/layout.js';
 import { money, dateTime } from '../shared/format.js';
 
@@ -30,7 +30,7 @@ const finIso = iso => { const d = new Date(`${iso}T00:00:00-03:00`); d.setDate(d
 // ---------- arranque ----------
 
 (async function init(){
-  if(!(await requireAuth())) return;
+  if(!(await requireAdmin())) return;
   const content = await mountLayout('dashboard', 'Dashboard');
 
   content.innerHTML = `

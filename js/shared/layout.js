@@ -6,15 +6,17 @@ import { instalarAvisos } from './dialogs.js';
 // Un solo lugar para la lista de módulos del admin: agregar acá cuando se construya
 // una página nueva (ver plan de fases), no hay que tocar cada .html. Los colores
 // replican los de la app de escritorio anterior (cada módulo tenía su color propio).
+// roles: quién ve el link en el menú. El admin ve todo; el encargado no ve Dashboard ni Usuarios
+// (Dashboard además está bloqueado en la base — ver mi_perfil/dash_periodo — no es solo visual).
 const MODULES = [
-  { key: 'dashboard', label: 'Dashboard', href: 'dashboard.html', color: '#e67e22' },
-  { key: 'ventas', label: 'Ventas', href: 'ventas.html', color: '#c0392b' },
-  { key: 'historial', label: 'Historial', href: 'historial.html', color: '#3498db' },
-  { key: 'inventario', label: 'Inventario y precios', href: 'inventario.html', color: '#f1c40f' },
-  { key: 'proveedores', label: 'Pago a proveedores', href: 'proveedores.html', color: '#27ae60' },
-  { key: 'caja', label: 'Caja', href: 'caja.html', color: '#2ecc71' },
-  { key: 'tienda', label: 'Tienda online', href: 'tienda-online.html', color: '#16a085' },
-  { key: 'usuarios', label: 'Usuarios', href: 'usuarios.html', color: '#7f8c8d' },
+  { key: 'dashboard', label: 'Dashboard', href: 'dashboard.html', color: '#e67e22', roles: ['admin'] },
+  { key: 'ventas', label: 'Ventas', href: 'ventas.html', color: '#c0392b', roles: ['admin', 'encargado'] },
+  { key: 'historial', label: 'Historial', href: 'historial.html', color: '#3498db', roles: ['admin', 'encargado'] },
+  { key: 'inventario', label: 'Inventario y precios', href: 'inventario.html', color: '#f1c40f', roles: ['admin', 'encargado'] },
+  { key: 'proveedores', label: 'Pago a proveedores', href: 'proveedores.html', color: '#27ae60', roles: ['admin', 'encargado'] },
+  { key: 'caja', label: 'Caja', href: 'caja.html', color: '#2ecc71', roles: ['admin', 'encargado'] },
+  { key: 'tienda', label: 'Tienda online', href: 'tienda-online.html', color: '#16a085', roles: ['admin', 'encargado'] },
+  { key: 'usuarios', label: 'Usuarios', href: 'usuarios.html', color: '#7f8c8d', roles: ['admin'] },
 ];
 
 // Inserta el sidebar+topbar en <div id="app-shell"></div> y devuelve el contenedor
@@ -25,8 +27,7 @@ export async function mountLayout(activeKey, pageTitle){
   const { data: { user } } = await sb.auth.getUser();
   const username = user ? user.email.replace(USERNAME_EMAIL_DOMAIN, '') : '';
   const perfil = await getPerfil();
-  // Solo el administrador gestiona usuarios
-  const modulos = MODULES.filter(m => m.key !== 'usuarios' || (perfil && perfil.rol === 'admin'));
+  const modulos = MODULES.filter(m => perfil && m.roles.includes(perfil.rol));
 
   root.innerHTML = `
     <div class="admin-shell">
