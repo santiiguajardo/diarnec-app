@@ -36,13 +36,16 @@ export async function requireAuth(){
   return session;
 }
 
-// Páginas solo para el administrador (Usuarios)
+// Páginas solo para el administrador (Usuarios, Dashboard). El encargado que llega acá (por link
+// directo, no debería pasar porque el menú ya no le muestra estas páginas) va a la pantalla que sí
+// le corresponde, no a Dashboard — si no, con Dashboard también restringido, quedaría en un
+// ping-pong de redirecciones.
 export async function requireAdmin(){
   const session = await requireAuth();
   if(!session) return null;
   const perfil = await getPerfil();
   if(perfil.rol !== 'admin'){
-    window.location.href = 'dashboard.html';
+    window.location.href = pantallaInicial(perfil);
     return null;
   }
   return session;
@@ -70,5 +73,11 @@ export async function logout(){
   window.location.href = 'login.html';
 }
 
-// A dónde va cada rol después de entrar
-export const pantallaInicial = perfil => perfil && perfil.rol === 'vendedor' ? 'mi-panel.html' : 'dashboard.html';
+// A dónde va cada rol después de entrar: el vendedor a su panel, el encargado (sin Dashboard) a
+// Ventas, y el admin al Dashboard.
+export function pantallaInicial(perfil){
+  if(!perfil) return 'login.html';
+  if(perfil.rol === 'vendedor') return 'mi-panel.html';
+  if(perfil.rol === 'encargado') return 'ventas.html';
+  return 'dashboard.html';
+}
