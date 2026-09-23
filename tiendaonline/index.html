@@ -47,7 +47,7 @@
   .hero h1{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:32px;letter-spacing:-1px;}
   .hero p{margin-top:8px;color:#C9D7E0;font-size:14px;}
 
-  .filters{display:flex;gap:10px;padding:18px 24px;overflow-x:auto;background:var(--paper);border-bottom:1px solid var(--line);}
+  .filters{display:flex;gap:10px;padding:12px 24px;overflow-x:auto;background:var(--paper);border-bottom:1px solid var(--line);position:sticky;top:var(--hdr,64px);z-index:15;margin-top:8px;}
   .chip{flex:none;padding:8px 16px;border-radius:100px;border:1px solid var(--line);background:#fff;font-size:13px;cursor:pointer;color:var(--muted);white-space:nowrap;}
   .chip.active{background:var(--navy);color:#fff;border-color:var(--navy);}
 
@@ -419,7 +419,14 @@
   // (un <script type="module"> no las expone en window por defecto).
   Object.assign(window, { setCat, setSort, setTipo, addToCart, changeQty, openCart, closeCart, checkout, imgFallback });
 
+  // Las categorías quedan fijas debajo del encabezado al scrollear; el alto del encabezado varía (se acomoda en celular).
+  function ajustarEncabezado(){
+    document.documentElement.style.setProperty('--hdr', document.querySelector('header').offsetHeight + 'px');
+  }
+  window.addEventListener('resize', ajustarEncabezado);
+
   (async function init(){
+    ajustarEncabezado();
     try { const t = localStorage.getItem('diarnec_tipo'); if(t === 'comercio' || t === 'particular') tipo = t; } catch(e){ /* sin storage */ }
     await Promise.all([loadProducts(), loadConfig(), loadVendedores()]);
     renderTipo();
