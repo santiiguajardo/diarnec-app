@@ -108,6 +108,8 @@
   .field label{font-size:12px;color:var(--muted);display:block;margin-bottom:4px;}
   .field input{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px;}
   .checkout-btn{width:100%;padding:12px;border:none;border-radius:10px;margin-top:6px;background:#25D366;color:#fff;font-weight:700;font-size:14px;cursor:pointer;}
+  .checkout-btn{display:flex;align-items:center;justify-content:center;gap:9px;}
+  .checkout-btn img{width:22px;height:22px;flex:none;}
   .checkout-btn:disabled{opacity:0.5;}
   .err{color:#C0392B;font-size:12px;margin-top:5px;display:none;}
   .field select{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px;background:#fff;}
@@ -134,13 +136,13 @@
   .hero h1{font-size:clamp(30px,5.4vw,52px);letter-spacing:-.045em;line-height:1.02;font-weight:700;}
   .hero h1 em{font-weight:300;font-style:italic;}
   .hero h1 .br{display:block;}
+  .hero h1 .wa-ico{width:.8em;height:.8em;margin-left:.25em;vertical-align:-.08em;}
   .hero p{font-size:15.5px;line-height:1.5;}
   .card .name,.item-row .name{font-weight:700;letter-spacing:-.015em;line-height:1.2;}
-  .price,.price2,.drawer-foot .total span:last-child{font-family:var(--mono);letter-spacing:-.03em;}
-  .price{font-size:14px;font-weight:600;}
-  .price2{font-size:12px;font-weight:500;}
-  .plabel{font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:.08em;}
-  .cart-btn .count{font-family:var(--mono);}
+  .price,.price2,.drawer-foot .total span:last-child{letter-spacing:-.015em;font-variant-numeric:tabular-nums;}
+  .price{font-size:15px;font-weight:700;}
+  .price2{font-size:12.5px;font-weight:500;}
+  .plabel{font-size:10.5px;font-weight:600;letter-spacing:.06em;}
   .drawer-head h2{letter-spacing:-.025em;}
   .tipo-seg button,.add-btn,.checkout-btn,.view-toggle button,.chip,nav button{font-weight:600;letter-spacing:-.005em;}
   .view-toggle button{white-space:nowrap;}
@@ -158,7 +160,7 @@
 
 <div id="view-store">
   <div class="hero">
-    <h1><span class="br">Armá tu carrito</span> <em class="br">y coordinamos por WhatsApp</em></h1>
+    <h1><span class="br">Armá tu carrito</span> <em class="br">y coordinamos por WhatsApp<img class="wa-ico" src="img/whatsapp.png" alt="" width="40" height="40"></em></h1>
     <p>Venta mayorista de productos alimenticios de calidad y alta rotación</p>
   </div>
   <div class="toolbar">
@@ -203,7 +205,7 @@
       <select id="shop-vend"><option value="">Sin preferencia (te atiende DIARNEC)</option></select></div>
     <div class="min-note" id="min-note"></div>
     <div class="err" id="err-msg"></div>
-    <button class="checkout-btn" onclick="checkout()">Finalizar pedido por WhatsApp</button>
+    <button class="checkout-btn" onclick="checkout()"><img src="img/whatsapp-blanco.png" alt="" width="22" height="22"><span id="checkout-label">Finalizar pedido por WhatsApp</span></button>
   </div>
 </div>
 
@@ -412,7 +414,7 @@
     // Se abre la ventana ya (dentro del click) para que el navegador no bloquee el WhatsApp de después.
     const win = window.open('', '_blank');
     btn.disabled = true;
-    btn.textContent = 'Enviando pedido...';
+    document.getElementById('checkout-label').textContent = 'Enviando pedido...';
 
     const rpcItems = items.map(([id, qty]) => ({ producto_id: Number(id), cantidad: qty }));
     const { data, error } = await sb.rpc('crear_pedido_online', {
@@ -421,7 +423,7 @@
     });
 
     btn.disabled = false;
-    btn.textContent = 'Finalizar pedido por WhatsApp';
+    document.getElementById('checkout-label').textContent = 'Finalizar pedido por WhatsApp';
 
     if(error){
       if(win) win.close();
