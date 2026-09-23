@@ -1,10 +1,11 @@
 import { sb } from '../shared/supabase-client.js';
-import { requireAuth } from '../shared/auth-guard.js';
+import { requireAuth, getPerfil } from '../shared/auth-guard.js';
 import { mountLayout } from '../shared/layout.js';
 import { money, dateTime } from '../shared/format.js';
 import { confirmDialog } from '../shared/dialogs.js';
 
 let gastos = [];
+let soloAdmin = false;
 let editando = null; // id del gasto que se está modificando (null = cargando uno nuevo)
 
 (async function init(){
@@ -15,8 +16,8 @@ let editando = null; // id del gasto que se está modificando (null = cargando u
     <div class="caja-resumen">
       <div class="caja-card"><span>Ingresos del mes</span><b id="stat-ing-mes" class="pos">$0</b></div>
       <div class="caja-card"><span>Gastos del mes</span><b id="stat-gas-mes" class="neg">$0</b></div>
-      <div class="caja-card"><span>Balance del mes</span><b id="stat-bal-mes">$0</b></div>
-      <div class="caja-card destacada"><span>Balance histórico</span><b id="stat-bal-hist">$0</b></div>
+      <div class="caja-card" id="card-bal-mes"><span>Balance del mes</span><b id="stat-bal-mes">$0</b></div>
+      <div class="caja-card destacada" id="card-bal-hist"><span>Balance histórico</span><b id="stat-bal-hist">$0</b></div>
     </div>
 
     <div class="admin-section">
@@ -33,6 +34,15 @@ let editando = null; // id del gasto que se está modificando (null = cargando u
       </table>
     </div>
   `;
+
+  // Los balances (mes e histórico) los ve solo el admin; el encargado ve ingresos y gastos del mes.
+  const perfil = await getPerfil();
+  soloAdmin = !!perfil && perfil.rol === 'admin';
+  if(!soloAdmin){
+    document.getElementById('card-bal-mes').remove();
+    document.getElementById('card-bal-hist').remove();
+    document.querySelector('.caja-resumen').classList.add('sin-balances');
+  }
 
   document.getElementById('g-registrar').addEventListener('click', registrar);
   document.getElementById('g-cancelar').addEventListener('click', cancelarEdicion);
@@ -82,8 +92,10 @@ async function cargarTodo(){
   };
   pintar('stat-ing-mes', ingMes, false);
   pintar('stat-gas-mes', gasMes, false);
-  pintar('stat-bal-mes', ingMes - gasMes, true);
-  pintar('stat-bal-hist', ingHist - gasHist, true);
+  if(soloAdmin){
+    pintar('stat-bal-mes', ingMes - gasMes, true);
+    pintar('stat-bal-hist', ingHist - gasHist, true);
+  }
 
   // Si el gasto que se estaba editando ya no existe (lo borraron en otra pestaña, etc.), se sale del modo edición.
   if(editando !== null && !gastos.some(g => g.id === editando)) cancelarEdicion();
