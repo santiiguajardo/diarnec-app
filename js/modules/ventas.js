@@ -1,5 +1,6 @@
 import { sb } from '../shared/supabase-client.js';
 import { requireAuth, getPerfil } from '../shared/auth-guard.js';
+import { abrirDetalleCuenta } from '../shared/cuenta-detalle.js';
 import { mountLayout } from '../shared/layout.js';
 import { money } from '../shared/format.js';
 import { confirmDialog } from '../shared/dialogs.js';
@@ -46,6 +47,7 @@ let comisionesMap = {}; // "vendedorId:marcaId" -> %
       <div class="ventas-main">
         <div class="admin-section">
           <div class="cta-head"><h3>Cuentas corrientes — Vendedores</h3><button class="btn-limpiar" id="btn-limpiar-v" title="Deja las cuentas en $0 desde ahora, sin borrar el historial">🧹 Limpiar cuentas corrientes</button></div>
+          <p class="cta-hint">Tocá una cuenta para ver el detalle de sus movimientos.</p>
           <table>
             <thead><tr><th>Nombre</th><th>Retirado</th><th>Devol.</th><th>Dev. stock</th><th>Bonif.</th><th>Pagos</th><th>Debe</th></tr></thead>
             <tbody id="tabla-vendedores"></tbody>
@@ -53,6 +55,7 @@ let comisionesMap = {}; // "vendedorId:marcaId" -> %
         </div>
         <div class="admin-section">
           <div class="cta-head"><h3>Cuentas corrientes — Clientes</h3><button class="btn-limpiar" id="btn-limpiar-c" title="Deja las cuentas en $0 desde ahora, sin borrar el historial">🧹 Limpiar cuentas corrientes</button></div>
+          <p class="cta-hint">Tocá una cuenta para ver el detalle de sus movimientos.</p>
           <p style="font-size:12px;color:var(--muted);margin:-6px 0 12px;">Solo tus clientes directos (los de la cartera de cada vendedor los maneja el desde su panel).</p>
           <table>
             <thead><tr><th>Nombre</th><th>Comprado</th><th>Devol.</th><th>Pagos</th><th>Debe</th></tr></thead>
@@ -139,7 +142,7 @@ async function cargarSaldos(){
         // r.devuelto ya suma devolucion comun + devolucion de stock; r.devuelto_stock es solo para
         // mostrarla aparte, asi que la columna "Devol." muestra el resto (la comun).
         const debe = Number(r.retirado) - Number(r.devuelto) - Number(r.pagado) - Number(r.bonificado);
-        return `<tr>
+        return `<tr class="cta-row" data-tipo="vendedor" data-id="${r.vendedor_id}" title="Tocá para ver el detalle de la cuenta">
           <td>${esc(r.nombre)}</td><td>${money(r.retirado)}</td><td>${money(Number(r.devuelto) - Number(r.devuelto_stock))}</td>
           <td>${money(r.devuelto_stock)}</td><td>${money(r.bonificado)}</td><td>${money(r.pagado)}</td>
           <td class="debe ${debe > 0.005 ? 'pos' : (debe < -0.005 ? '' : 'zero')}">${money(debe)}</td>
@@ -152,7 +155,7 @@ async function cargarSaldos(){
     ? `<tr><td colspan="5" class="empty-row">No hay clientes cargados.</td></tr>`
     : filasC.map(r => {
         const debe = Number(r.comprado) - Number(r.devuelto) - Number(r.pagado);
-        return `<tr>
+        return `<tr class="cta-row" data-tipo="cliente" data-id="${r.cliente_id}" title="Tocá para ver el detalle de la cuenta">
           <td>${esc(r.nombre)}</td><td>${money(r.comprado)}</td><td>${money(r.devuelto)}</td>
           <td>${money(r.pagado)}</td>
           <td class="debe ${debe > 0.005 ? 'pos' : (debe < -0.005 ? '' : 'zero')}">${money(debe)}</td>
@@ -204,6 +207,12 @@ function wireBotones(){
   document.getElementById('pg-tipo').addEventListener('change', actualizarEntidadPago);
   document.getElementById('pg-confirmar').addEventListener('click', confirmarPago);
 
+  // Tocar una cuenta corriente abre su detalle (movimientos, productos y saldo)
+  ['tabla-vendedores', 'tabla-clientes'].forEach(id => document.getElementById(id).addEventListener('click', e => {
+    const tr = e.target.closest('tr.cta-row');
+    if(!tr) return;
+    abrirDetalleCuenta({ tipo: tr.dataset.tipo, id: Number(tr.dataset.id), nombre: tr.firstElementChild.textContent.trim() });
+  }));
   document.getElementById('btn-limpiar-v').addEventListener('click', limpiarCuentasCorrientes);
   document.getElementById('btn-limpiar-c').addEventListener('click', limpiarCuentasCorrientes);
 }
