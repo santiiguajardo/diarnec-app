@@ -268,7 +268,7 @@ export async function responder(texto){
   if(pideProducto && /vend|venta|salio|movio|facturo|unidades/.test(t)){
     const p = productos[0];
     const { data, error } = await sb.from('ventas_items').select('cantidad, subtotal, ventas!inner(created_at, estado)')
-      .eq('producto_id', p.id).eq('ventas.estado', 'confirmada')
+      .eq('producto_id', p.id).eq('ventas.estado', 'confirmada').neq('ventas.canal', 'vendedor')
       .gte('ventas.created_at', inicioIso(pDef.desde)).lt('ventas.created_at', finIso(pDef.hasta));
     if(error) throw error;
     const u = suma(data || [], x => x.cantidad), m = suma(data || [], x => x.subtotal);
@@ -302,7 +302,7 @@ export async function responder(texto){
   const vend = vendedores.find(v => v.activo || v.es_canal_online);
   if(vend && /vend|venta|factur|movio|hizo|hace/.test(t)){
     const { data, error } = await sb.from('ventas').select('total_neto, total_bruto, total_descuento_comision')
-      .eq('vendedor_id', vend.id).eq('estado', 'confirmada').gte('created_at', inicioIso(pDef.desde)).lt('created_at', finIso(pDef.hasta));
+      .eq('vendedor_id', vend.id).eq('estado', 'confirmada').neq('canal', 'vendedor').gte('created_at', inicioIso(pDef.desde)).lt('created_at', finIso(pDef.hasta));
     if(error) throw error;
     const n = (data || []).length;
     return { html: n ? `<b>${esc(vend.nombre)}</b> — ${esc(pDef.nombre)}: <b>${money(suma(data, x => x.total_neto))}</b> netos en ${n} venta${n === 1 ? '' : 's'} (${money(suma(data, x => x.total_bruto))} a precio final, comisión ${money(suma(data, x => x.total_descuento_comision))}).` : `<b>${esc(vend.nombre)}</b> no tuvo ventas — ${esc(pDef.nombre)}.`, chips: [`Saldo de ${vend.nombre}`, 'Mejores vendedores'] };
