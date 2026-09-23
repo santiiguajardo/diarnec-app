@@ -371,6 +371,7 @@ function htmlStockBajo(productos){
 // ---------- gráficos ----------
 
 const etiquetaDia = f => { const d = new Date(`${f}T12:00:00`); return `${DIAS[(d.getDay() + 6) % 7]} ${f.slice(8, 10)}`; };
+if(window.Chart) Chart.defaults.font.family = "Archivo, 'Helvetica Neue', Arial, sans-serif";
 const ejeDinero = { beginAtZero: true, grid: { color: GREY + '55' }, ticks: { font: { size: 10 }, callback: v => '$' + Number(v).toLocaleString('es-AR') } };
 const tooltipDinero = { callbacks: { label: c => `${c.dataset.label}: ${money(c.parsed.y ?? c.parsed)}` } };
 

@@ -328,10 +328,10 @@ export async function responder(texto){
 const CSS = `
 #as-fab{position:fixed;right:22px;bottom:22px;z-index:450;background:#122436;color:#fff;border:none;border-radius:100px;padding:13px 18px;font-size:14px;font-weight:600;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.28);display:flex;align-items:center;gap:8px;}
 #as-fab:hover{transform:translateY(-1px);}
-#as-panel{position:fixed;right:22px;bottom:22px;z-index:451;width:400px;max-width:calc(100vw - 24px);height:560px;max-height:calc(100vh - 44px);background:#fff;border-radius:16px;box-shadow:0 18px 50px rgba(0,0,0,.35);display:none;flex-direction:column;overflow:hidden;font-family:'Inter',sans-serif;}
+#as-panel{position:fixed;right:22px;bottom:22px;z-index:451;width:400px;max-width:calc(100vw - 24px);height:560px;max-height:calc(100vh - 44px);background:#fff;border-radius:16px;box-shadow:0 18px 50px rgba(0,0,0,.35);display:none;flex-direction:column;overflow:hidden;font-family:var(--display,'Archivo',sans-serif);}
 #as-panel.open{display:flex;}
-.as-head{background:#122436;color:#fff;padding:13px 16px;display:flex;justify-content:space-between;align-items:center;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:15px;}
-.as-head small{display:block;font-family:'Inter',sans-serif;font-weight:400;font-size:11px;opacity:.7;}
+.as-head{background:#122436;color:#fff;padding:13px 16px;display:flex;justify-content:space-between;align-items:center;font-family:var(--display,'Archivo',sans-serif);font-weight:700;font-size:15px;}
+.as-head small{display:block;font-family:var(--display,'Archivo',sans-serif);font-weight:400;font-size:11px;opacity:.7;}
 .as-head button{background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:8px;width:30px;height:30px;cursor:pointer;font-size:14px;margin-left:6px;}
 .as-msgs{flex:1;overflow-y:auto;padding:14px;background:#F6F7F9;display:flex;flex-direction:column;gap:10px;}
 .as-m{max-width:92%;padding:10px 12px;border-radius:12px;font-size:13px;line-height:1.5;color:#1A1A1A;word-wrap:break-word;}

@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DIARNEC — Pago a proveedores</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@0,62..125,100..900;1,62..125,100..900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js" integrity="sha384-JBR+x8blGwjDRO63aHCGiZMD4VNiTR4ZUGA+N6ZKLf3zNt1fK8IBpcgPaMrxqWBp" crossorigin="anonymous"></script>
 <link rel="stylesheet" href="../css/tokens.css">
 <link rel="stylesheet" href="../css/shared.css">
@@ -19,7 +20,7 @@
   .pv-ico{width:44px;height:44px;border-radius:12px;background:var(--navy);display:flex;align-items:center;justify-content:center;font-size:22px;flex:none;}
   .pv-pago .pv-ico{background:var(--green);}
   .pv-hist .pv-ico{background:var(--orange);}
-  .pv-head h3{font-family:'Space Grotesk',sans-serif;color:var(--navy);font-size:19px;margin:0;}
+  .pv-head h3{font-family:var(--display,'Archivo',sans-serif);color:var(--navy);font-size:19px;margin:0;}
   .pv-head p{font-size:13px;color:var(--muted);margin-top:2px;}
 
   .pv-form{display:grid;gap:12px;align-items:end;margin-bottom:6px;}
@@ -59,7 +60,7 @@
   .pv-resumen{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
   .pv-resumen div{background:var(--paper);border-radius:10px;padding:10px 16px;min-width:150px;}
   .pv-resumen span{display:block;font-size:11px;color:var(--muted);}
-  .pv-resumen b{font-family:'Space Grotesk',sans-serif;font-size:18px;color:var(--navy);}
+  .pv-resumen b{font-family:var(--display,'Archivo',sans-serif);font-size:18px;color:var(--navy);}
 
   .cheque-row{display:none;margin-top:12px;padding:12px;border:1px dashed #9ED9BC;border-radius:10px;background:#fff;gap:12px;align-items:center;flex-wrap:wrap;}
   .cheque-row.open{display:flex;}

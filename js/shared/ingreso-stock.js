@@ -27,7 +27,7 @@ function inyectarEstilos(){
     .ing-box{background:#fff;border-radius:16px;width:980px;max-width:100%;padding:24px;box-shadow:0 20px 50px rgba(0,0,0,.3);}
     .ing-head{display:flex;align-items:center;gap:14px;margin-bottom:14px;}
     .ing-ico{width:46px;height:46px;border-radius:12px;background:var(--navy,#122436);display:flex;align-items:center;justify-content:center;font-size:23px;flex:none;}
-    .ing-head h3{font-family:'Space Grotesk',sans-serif;color:var(--navy,#122436);font-size:20px;margin:0;}
+    .ing-head h3{font-family:var(--display,'Archivo',sans-serif);color:var(--navy,#122436);font-size:20px;margin:0;}
     .ing-head p{font-size:13px;color:var(--muted,#6B7280);margin:2px 0 0;}
     .ing-meta{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
     .ing-meta label{display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:600;color:var(--navy,#122436);}

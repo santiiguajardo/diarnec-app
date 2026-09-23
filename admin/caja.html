@@ -5,15 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DIARNEC — Caja</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@0,62..125,100..900;1,62..125,100..900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js" integrity="sha384-JBR+x8blGwjDRO63aHCGiZMD4VNiTR4ZUGA+N6ZKLf3zNt1fK8IBpcgPaMrxqWBp" crossorigin="anonymous"></script>
 <link rel="stylesheet" href="../css/tokens.css">
 <link rel="stylesheet" href="../css/shared.css">
 <link rel="stylesheet" href="../css/admin.css">
 <style>
   .caja-resumen{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:20px;}
-  .caja-card{background:var(--navy);color:#fff;border-radius:14px;padding:16px 20px;font-family:'Space Grotesk',sans-serif;}
-  .caja-card span{display:block;opacity:.75;font-weight:500;font-family:'Inter',sans-serif;font-size:13px;margin-bottom:6px;}
+  .caja-card{background:var(--navy);color:#fff;border-radius:14px;padding:16px 20px;font-family:var(--display,'Archivo',sans-serif);}
+  .caja-card span{display:block;opacity:.75;font-weight:500;font-family:var(--display,'Archivo',sans-serif);font-size:13px;margin-bottom:6px;}
   .caja-card b{font-size:clamp(16px,1.9vw,22px);white-space:nowrap;}
   .caja-card.destacada{background:#0B1824;box-shadow:inset 0 0 0 2px rgba(255,255,255,.18);}
   .caja-card .pos{color:#4ade80;}
