@@ -114,7 +114,7 @@ async function cargarPedidos(){
           <tbody>
             ${(p.ventas_items || []).map(it => `
               <tr>
-                <td>${it.productos ? it.productos.nombre : ''}</td>
+                <td>${esc(it.productos ? it.productos.nombre : '')}</td>
                 <td>${Number(it.cantidad)}</td>
                 <td>${money(it.precio_unitario)}</td>
                 <td>${money(it.subtotal)}</td>

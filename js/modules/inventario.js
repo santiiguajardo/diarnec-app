@@ -209,10 +209,10 @@ async function cargarTodo(){
   categorias = cat || [];
   productos = prod || [];
 
-  document.getElementById('np-marca').innerHTML = marcas.map(m => `<option value="${m.id}">${m.nombre}</option>`).join('');
-  document.getElementById('np-categoria').innerHTML = categorias.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
-  document.getElementById('f-marca').innerHTML = `<option value="">Todas las marcas</option>` + marcas.map(m => `<option value="${m.id}">${m.nombre}</option>`).join('');
-  document.getElementById('masiva-marca').innerHTML = `<option value="">Todas las marcas</option>` + marcas.map(m => `<option value="${m.id}">${m.nombre}</option>`).join('');
+  document.getElementById('np-marca').innerHTML = marcas.map(m => `<option value="${m.id}">${esc(m.nombre)}</option>`).join('');
+  document.getElementById('np-categoria').innerHTML = categorias.map(c => `<option value="${c.id}">${esc(c.nombre)}</option>`).join('');
+  document.getElementById('f-marca').innerHTML = `<option value="">Todas las marcas</option>` + marcas.map(m => `<option value="${m.id}">${esc(m.nombre)}</option>`).join('');
+  document.getElementById('masiva-marca').innerHTML = `<option value="">Todas las marcas</option>` + marcas.map(m => `<option value="${m.id}">${esc(m.nombre)}</option>`).join('');
 
   renderTabla();
   renderMarcas();
@@ -450,10 +450,10 @@ function renderTabla(){
             ${p.imagen_url ? `<img src="${p.imagen_url}" alt="">` : '📷'}
           </button>
         </td>
-        <td>${p.categorias ? p.categorias.nombre : ''}</td>
-        <td>${p.marcas ? p.marcas.nombre : ''}</td>
-        <td class="wrap"><b>${p.nombre}</b></td>
-        <td>${p.unidad || ''}</td>
+        <td>${esc(p.categorias ? p.categorias.nombre : '')}</td>
+        <td>${esc(p.marcas ? p.marcas.nombre : '')}</td>
+        <td class="wrap"><b>${esc(p.nombre)}</b></td>
+        <td>${esc(p.unidad || '')}</td>
         <td><input class="cell-input" type="number" step="0.01" value="${p.precio_compra}" onchange="window.invUpdate(${p.id},'precio_compra',this.value)"></td>
         <td><span class="${margenClass}">${margenTxt}</span></td>
         <td><input class="cell-input" type="number" step="0.01" value="${p.precio_venta}" onchange="window.invUpdate(${p.id},'precio_venta',this.value)"></td>

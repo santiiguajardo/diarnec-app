@@ -9,6 +9,7 @@ import { ajustarInputCantidad, cantidadEsValida, mensajeCantidad } from '../shar
 
 let vendedores = [];
 let vendedorOnline = null; // vendedor fijo "Tienda Online" (es_canal_online)
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 let pedidoEnCurso = null; // pedido online que se está pasando a venta en el modal de retiro
 let clientes = [];
 let marcas = [];
@@ -105,7 +106,7 @@ async function cargarBase(){
 
   const rtCliente = document.getElementById('rt-cliente');
   rtCliente.innerHTML = '<option value="">Sin cliente asignado</option>' +
-    clientesActivos.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
+    clientesActivos.map(c => `<option value="${c.id}">${esc(c.nombre)}</option>`).join('');
 
   renderVendedoresList();
   renderClientesList();
@@ -114,7 +115,7 @@ async function cargarBase(){
 function populateSelect(id, items, valueKey, labelKey, placeholder){
   const el = document.getElementById(id);
   const ph = placeholder ? `<option value="">${placeholder}</option>` : '';
-  el.innerHTML = ph + items.map(it => `<option value="${it[valueKey]}">${it[labelKey]}</option>`).join('');
+  el.innerHTML = ph + items.map(it => `<option value="${esc(it[valueKey])}">${esc(it[labelKey])}</option>`).join('');
 }
 
 // ===== Cuentas corrientes =====
@@ -139,7 +140,7 @@ async function cargarSaldos(){
         // mostrarla aparte, asi que la columna "Devol." muestra el resto (la comun).
         const debe = Number(r.retirado) - Number(r.devuelto) - Number(r.pagado) - Number(r.bonificado);
         return `<tr>
-          <td>${r.nombre}</td><td>${money(r.retirado)}</td><td>${money(Number(r.devuelto) - Number(r.devuelto_stock))}</td>
+          <td>${esc(r.nombre)}</td><td>${money(r.retirado)}</td><td>${money(Number(r.devuelto) - Number(r.devuelto_stock))}</td>
           <td>${money(r.devuelto_stock)}</td><td>${money(r.bonificado)}</td><td>${money(r.pagado)}</td>
           <td class="debe ${debe > 0.005 ? 'pos' : (debe < -0.005 ? '' : 'zero')}">${money(debe)}</td>
         </tr>`;
@@ -152,7 +153,7 @@ async function cargarSaldos(){
     : filasC.map(r => {
         const debe = Number(r.comprado) - Number(r.devuelto) - Number(r.pagado);
         return `<tr>
-          <td>${r.nombre}</td><td>${money(r.comprado)}</td><td>${money(r.devuelto)}</td>
+          <td>${esc(r.nombre)}</td><td>${money(r.comprado)}</td><td>${money(r.devuelto)}</td>
           <td>${money(r.pagado)}</td>
           <td class="debe ${debe > 0.005 ? 'pos' : (debe < -0.005 ? '' : 'zero')}">${money(debe)}</td>
         </tr>`;
@@ -215,12 +216,12 @@ function cerrarModal(id){ document.getElementById(id).classList.remove('open'); 
 function renderVendedoresList(){
   const tbody = document.getElementById('vd-body');
   const fijo = vendedorOnline
-    ? `<tr><td>${vendedorOnline.nombre}<span class="tag-fijo">fijo · sin comisión</span></td><td></td><td></td></tr>`
+    ? `<tr><td>${esc(vendedorOnline.nombre)}<span class="tag-fijo">fijo · sin comisión</span></td><td></td><td></td></tr>`
     : '';
   tbody.innerHTML = fijo + vendedores.map(v => `
     <tr class="${v.activo ? '' : 'inactive-row'}">
-      <td>${v.nombre}</td>
-      <td><input class="cell-tel" type="tel" placeholder="Sin cargar" value="${(v.telefono || '').replace(/"/g, '&quot;')}"
+      <td>${esc(v.nombre)}</td>
+      <td><input class="cell-tel" type="tel" placeholder="Sin cargar" value="${esc(v.telefono || '')}"
            onchange="window.vdTelefono(${v.id},this)"></td>
       <td><div class="row-actions">
         <button class="btn-sm ${v.activo ? 'btn-grey' : 'btn-add'}" onclick="window.vdToggle(${v.id},${v.activo})">${v.activo ? 'Baja' : 'Alta'}</button>
@@ -294,7 +295,7 @@ async function cargarComisionesVendedor(){
     ? `<tr><td colspan="2" class="empty-row">No hay marcas cargadas.</td></tr>`
     : marcas.map(m => `
       <tr>
-        <td>${m.nombre}</td>
+        <td>${esc(m.nombre)}</td>
         <td><input class="cell-pct" type="number" step="0.1" min="0" placeholder="0"
              value="${porMarca[m.id] !== undefined ? porMarca[m.id] : ''}"
              onchange="window.cmGuardar(${vendedorId},${m.id},this)"></td>
@@ -327,7 +328,7 @@ function renderClientesList(){
   const tbody = document.getElementById('cl-body');
   tbody.innerHTML = clientes.map(c => `
     <tr class="${c.activo ? '' : 'inactive-row'}">
-      <td>${c.nombre}</td><td>${c.cuit || ''}</td><td>${c.localidad || ''}</td>
+      <td>${esc(c.nombre)}</td><td>${esc(c.cuit || '')}</td><td>${esc(c.localidad || '')}</td>
       <td><div class="row-actions">
         <button class="btn-sm ${c.activo ? 'btn-grey' : 'btn-add'}" onclick="window.clToggle(${c.id},${c.activo})">${c.activo ? 'Baja' : 'Alta'}</button>
         <button class="btn-sm btn-del" onclick="window.clBorrar(${c.id})">Borrar</button>

@@ -6,6 +6,7 @@ import { confirmDialog } from '../shared/dialogs.js';
 
 let gastos = [];
 let soloAdmin = false;
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 let editando = null; // id del gasto que se está modificando (null = cargando uno nuevo)
 
 (async function init(){
@@ -111,7 +112,7 @@ function render(){
   tbody.innerHTML = gastos.map(g => `
     <tr class="${g.id === editando ? 'selected' : ''}">
       <td>${dateTime(g.created_at)}</td>
-      <td class="wrap">${g.descripcion}</td>
+      <td class="wrap">${esc(g.descripcion)}</td>
       <td>${money(g.monto)}</td>
       <td class="row-btns">
         <button class="btn-sm btn-edit" data-act="editar" data-id="${g.id}">✏️ Modificar</button>

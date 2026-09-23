@@ -264,7 +264,7 @@
   function renderFilters(){
     const el = document.getElementById('filters');
     el.innerHTML = categories().map(c =>
-      `<button class="chip ${c===activeCat?'active':''}" onclick="setCat('${c}')">${c}</button>`
+      `<button class="chip ${c===activeCat?'active':''}" data-cat="${esc(c)}" onclick="setCat(this.dataset.cat)">${esc(c)}</button>`
     ).join('');
   }
   function setCat(c){ activeCat = c; renderFilters(); renderGrid(); }
@@ -287,9 +287,9 @@
         return `
       <div class="item-row">
         ${p.image
-          ? `<img class="rthumb" src="${p.image}" alt="${p.name}" data-color="${p.color}" data-cat="${p.cat}" onerror="imgFallback(this)">`
-          : `<div class="rthumb" style="background:${p.color}">${p.cat}</div>`}
-        <div><div class="name">${p.name}</div><div class="unit">${p.brand}${p.unit ? ' · ' + p.unit : ''}</div></div>
+          ? `<img class="rthumb" src="${esc(p.image)}" alt="${esc(p.name)}" data-color="${esc(p.color)}" data-cat="${esc(p.cat)}" onerror="imgFallback(this)">`
+          : `<div class="rthumb" style="background:${esc(p.color)}">${esc(p.cat)}</div>`}
+        <div><div class="name">${esc(p.name)}</div><div class="unit">${esc(p.brand)}${p.unit ? ' · ' + esc(p.unit) : ''}</div></div>
         <div class="prices">${precios}</div>
         <div class="ctrl">${control}</div>
       </div>`;
@@ -297,11 +297,11 @@
       return `
       <div class="card">
         ${p.image
-          ? `<img src="${p.image}" alt="${p.name}" data-color="${p.color}" data-cat="${p.cat}" style="aspect-ratio:1/1;width:100%;border-radius:10px;object-fit:cover;" onerror="imgFallback(this)">`
-          : `<div class="thumb" style="background:${p.color}">${p.cat}</div>`
+          ? `<img src="${esc(p.image)}" alt="${esc(p.name)}" data-color="${esc(p.color)}" data-cat="${esc(p.cat)}" style="aspect-ratio:1/1;width:100%;border-radius:10px;object-fit:cover;" onerror="imgFallback(this)">`
+          : `<div class="thumb" style="background:${esc(p.color)}">${esc(p.cat)}</div>`
         }
-        <div class="name">${p.name}</div>
-        <div class="unit">${p.brand}${p.unit ? ' · ' + p.unit : ''}</div>
+        <div class="name">${esc(p.name)}</div>
+        <div class="unit">${esc(p.brand)}${p.unit ? ' · ' + esc(p.unit) : ''}</div>
         ${precios}
         ${control}
       </div>`;
@@ -334,7 +334,7 @@
         if(!p) return '';
         return `
         <div class="d-item">
-          <div class="info"><b>${p.name}</b><span>${p.brand} · ${money(priceFor(p))} c/u</span></div>
+          <div class="info"><b>${esc(p.name)}</b><span>${esc(p.brand)} · ${money(priceFor(p))} c/u</span></div>
           <div class="stepper"><button onclick="changeQty(${p.id},-1)">−</button><span>${qty}</span><button onclick="changeQty(${p.id},1)">+</button></div>
         </div>`;
       }).join('');
