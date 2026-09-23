@@ -1,7 +1,15 @@
 :root{
   --navy:#122436; --green:#2BB673; --orange:#FF8A3D;
   --paper:#F2F1EC; --ink:#1A1A1A; --muted:#6B7280; --line:#E4E2DA;
+  --display:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Consolas,monospace;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:'Inter',sans-serif;background:var(--paper);color:var(--ink);}
-input,select{font-family:'Inter',sans-serif;}
+body{font-family:var(--display);-webkit-font-smoothing:antialiased;line-height:1.45;background:var(--paper);color:var(--ink);}
+input,select{font-family:var(--display,'Archivo',sans-serif);}
+
+/* ===== Tipografía: Archivo (mismo criterio que la tienda) ===== */
+button,input,select,textarea{font-family:inherit;}
+h1,h2,h3{letter-spacing:-.025em;}
+th,td,.stat b,.kpi b,b{font-variant-numeric:tabular-nums;}
+button,.btn,.btn-sm{letter-spacing:-.005em;}

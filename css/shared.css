@@ -1,18 +1,18 @@
 /* Componentes compartidos por las páginas de admin (login + módulos) */
 
 .lock{max-width:340px;margin:60px auto;background:#fff;border:1px solid var(--line);border-radius:14px;padding:28px;text-align:center;}
-.lock h2{font-family:'Space Grotesk',sans-serif;color:var(--navy);margin-bottom:6px;}
+.lock h2{font-family:var(--display,'Archivo',sans-serif);color:var(--navy);margin-bottom:6px;}
 .lock p{font-size:13px;color:var(--muted);margin-bottom:16px;}
 .lock input{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;margin-bottom:10px;font-size:13px;}
 .lock button{width:100%;padding:10px;border:none;border-radius:8px;background:var(--navy);color:#fff;font-weight:600;cursor:pointer;}
 .lock .err{display:block;min-height:16px;}
 
 .admin-section{background:#fff;border:1px solid var(--line);border-radius:14px;padding:22px;margin-bottom:24px;}
-.admin-section h3{font-family:'Space Grotesk',sans-serif;color:var(--navy);font-size:17px;margin-bottom:16px;}
+.admin-section h3{font-family:var(--display,'Archivo',sans-serif);color:var(--navy);font-size:17px;margin-bottom:16px;}
 .stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px;}
 .stat{background:var(--paper);border-radius:10px;padding:14px;}
 .stat span{display:block;font-size:12px;color:var(--muted);}
-.stat b{font-family:'Space Grotesk',sans-serif;font-size:20px;color:var(--navy);}
+.stat b{font-family:var(--display,'Archivo',sans-serif);font-size:20px;color:var(--navy);}
 
 .form-row{display:grid;grid-template-columns:1.2fr 2fr 1.4fr 1fr 1.4fr 0.8fr auto;gap:8px;margin-bottom:10px;align-items:center;}
 .form-row input, .form-row select{padding:8px;border:1px solid var(--line);border-radius:8px;font-size:13px;width:100%;}
@@ -57,7 +57,7 @@ td{padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:middle;}
 /* Resumen de venta + descarga de factura (ver js/shared/venta-resumen.js) */
 .vr-overlay{position:fixed;inset:0;background:rgba(18,36,54,.5);display:flex;align-items:center;justify-content:center;z-index:150;padding:20px;}
 .vr-box{background:#fff;border-radius:14px;padding:24px;width:620px;max-width:100%;max-height:90vh;overflow-y:auto;}
-.vr-box h3{font-family:'Space Grotesk',sans-serif;color:var(--navy);margin-bottom:14px;}
+.vr-box h3{font-family:var(--display,'Archivo',sans-serif);color:var(--navy);margin-bottom:14px;}
 .vr-loading{color:var(--muted);text-align:center;padding:24px;}
 .vr-meta{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;}
 .vr-meta span{display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;}
