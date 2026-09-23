@@ -55,7 +55,24 @@
   .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:16px;}
   .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:9px;}
   .thumb{aspect-ratio:1/1;width:100%;border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:12px;color:#fff;text-align:center;padding:6px;}
-  .toolbar{display:flex;justify-content:flex-end;align-items:center;padding:14px 24px 0;gap:8px;}
+  .toolbar{display:flex;justify-content:flex-end;align-items:center;padding:14px 24px 0;gap:12px;}
+  .view-toggle{display:flex;gap:4px;background:#fff;border:1px solid var(--line);border-radius:100px;padding:3px;}
+  .view-toggle button{border:none;background:none;padding:6px 14px;border-radius:100px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;}
+  .view-toggle button.active{background:var(--navy);color:#fff;}
+  .grid.list{display:flex;flex-direction:column;gap:10px;}
+  .item-row{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 14px;display:grid;grid-template-columns:64px minmax(0,1fr) auto 150px;gap:14px;align-items:center;}
+  .item-row .rthumb{width:64px;height:64px;border-radius:8px;object-fit:cover;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;text-align:center;font-family:'Space Grotesk',sans-serif;}
+  .item-row .name{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:14px;color:var(--navy);}
+  .item-row .unit{font-size:12px;color:var(--muted);margin-top:2px;}
+  .item-row .prices{min-width:170px;display:flex;flex-direction:column;gap:2px;}
+  .item-row .prices .price,.item-row .prices .price2{margin-top:0;}
+  .item-row .add-btn{margin-top:0;}
+  @media (max-width:640px){
+    .item-row{grid-template-columns:56px minmax(0,1fr);gap:10px;}
+    .item-row .rthumb{width:56px;height:56px;}
+    .item-row .prices{grid-column:1 / -1;min-width:0;}
+    .item-row .ctrl{grid-column:1 / -1;}
+  }
   .toolbar label{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);}
   .toolbar select{padding:8px 12px;border:1px solid var(--line);border-radius:100px;background:#fff;font-size:13px;color:var(--ink);cursor:pointer;}
   @media (max-width:480px){ .toolbar{justify-content:stretch;} .toolbar label{width:100%;} .toolbar select{flex:1;} }
@@ -92,8 +109,10 @@
   .err{color:#C0392B;font-size:12px;margin-top:5px;display:none;}
   .field select{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px;background:#fff;}
   .tipo-seg{display:flex;gap:8px;margin-bottom:12px;}
-  .tipo-seg button{flex:1;padding:10px 6px;border:1.5px solid var(--line);border-radius:10px;background:#fff;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;}
-  .tipo-seg button.active{border-color:var(--navy);background:var(--navy);color:#fff;}
+  .tipo-seg button{flex:1;padding:10px 6px;border:2px solid var(--c);border-radius:10px;background:var(--bg);font-size:13px;font-weight:700;color:var(--c);cursor:pointer;}
+  .tipo-seg button.active{background:var(--c);color:#fff;}
+  #tipo-comercio{--c:#17A06B;--bg:#E4F6EC;}
+  #tipo-particular{--c:#2E86DE;--bg:#E6F0FB;}
   .tipo-note{font-size:12px;color:var(--muted);margin:-4px 0 10px;line-height:1.35;}
   .min-note{font-size:12px;border-radius:8px;padding:8px 10px;margin-bottom:10px;background:#FFF4E5;color:#9A5B00;display:none;}
   .price-note{background:#fff;border-bottom:1px solid var(--line);color:var(--muted);font-size:12.5px;text-align:center;padding:9px 16px;}
@@ -121,6 +140,10 @@
   </div>
   <div class="price-note" id="price-note"></div>
   <div class="toolbar">
+    <div class="view-toggle" role="group" aria-label="Vista">
+      <button type="button" id="view-grilla" onclick="setView('grilla')">▦ Grilla</button>
+      <button type="button" id="view-lista" onclick="setView('lista')">☰ Lista</button>
+    </div>
     <label>Ordenar por
       <select id="sort" onchange="setSort(this.value)">
         <option value="price_desc">Precio: mayor a menor</option>
@@ -171,6 +194,7 @@
   let products = [];
   let activeCat = "Todos";
   let sortBy = "price_desc"; // al abrir, lo más caro primero
+  let viewMode = 'grilla'; // 'grilla' (con fotos grandes) o 'lista'
   const cart = {};
 
   // Dos precios: "comercio" = precio de lista; "particular" = lista + recargo, con compra mínima.
@@ -190,6 +214,15 @@
     nombre: (a, b) => a.name.localeCompare(b.name, 'es')
   };
   function setSort(v){ sortBy = v; renderGrid(); }
+  function renderViewToggle(){
+    document.getElementById('view-grilla').classList.toggle('active', viewMode === 'grilla');
+    document.getElementById('view-lista').classList.toggle('active', viewMode === 'lista');
+  }
+  function setView(v){
+    viewMode = v;
+    try { localStorage.setItem('diarnec_vista', v); } catch(e){ /* sin storage */ }
+    renderViewToggle(); renderGrid();
+  }
 
   function imgFallback(img){
     const div = document.createElement('div');
@@ -217,8 +250,26 @@
     const base = activeCat === "Todos" ? products : products.filter(p => p.cat === activeCat);
     const list = [...base].sort(SORTERS[sortBy] || SORTERS.price_desc);
     if(list.length === 0){ el.innerHTML = `<div class="empty-row">No hay productos en esta categoría.</div>`; return; }
+    el.className = 'grid' + (viewMode === 'lista' ? ' list' : '');
     el.innerHTML = list.map(p => {
       const qty = cart[p.id] || 0;
+      const control = qty === 0
+        ? `<button class="add-btn" onclick="addToCart(${p.id})">Agregar</button>`
+        : `<div class="stepper"><button onclick="changeQty(${p.id},-1)">−</button><span>${qty}</span><button onclick="changeQty(${p.id},1)">+</button></div>`;
+      const precios = `
+        <div class="price"><span class="plabel">Comercio</span>${money(p.price)}</div>
+        <div class="price2"><span class="plabel">Particular</span>${money(precioParticular(p))}</div>`;
+      if(viewMode === 'lista'){
+        return `
+      <div class="item-row">
+        ${p.image
+          ? `<img class="rthumb" src="${p.image}" alt="${p.name}" data-color="${p.color}" data-cat="${p.cat}" onerror="imgFallback(this)">`
+          : `<div class="rthumb" style="background:${p.color}">${p.cat}</div>`}
+        <div><div class="name">${p.name}</div><div class="unit">${p.brand}${p.unit ? ' · ' + p.unit : ''}</div></div>
+        <div class="prices">${precios}</div>
+        <div class="ctrl">${control}</div>
+      </div>`;
+      }
       return `
       <div class="card">
         ${p.image
@@ -227,12 +278,8 @@
         }
         <div class="name">${p.name}</div>
         <div class="unit">${p.brand}${p.unit ? ' · ' + p.unit : ''}</div>
-        <div class="price"><span class="plabel">Comercio</span>${money(p.price)}</div>
-        <div class="price2"><span class="plabel">Particular</span>${money(precioParticular(p))}</div>
-        ${qty === 0
-          ? `<button class="add-btn" onclick="addToCart(${p.id})">Agregar</button>`
-          : `<div class="stepper"><button onclick="changeQty(${p.id},-1)">−</button><span>${qty}</span><button onclick="changeQty(${p.id},1)">+</button></div>`
-        }
+        ${precios}
+        ${control}
       </div>`;
     }).join('');
   }
@@ -421,7 +468,7 @@
 
   // Los <button onclick="..."> del HTML necesitan estas funciones como globales
   // (un <script type="module"> no las expone en window por defecto).
-  Object.assign(window, { setCat, setSort, setTipo, addToCart, changeQty, openCart, closeCart, checkout, imgFallback });
+  Object.assign(window, { setCat, setSort, setView, setTipo, addToCart, changeQty, openCart, closeCart, checkout, imgFallback });
 
   // Las categorías quedan fijas debajo del encabezado al scrollear; el alto del encabezado varía (se acomoda en celular).
   function ajustarEncabezado(){
@@ -431,6 +478,8 @@
 
   (async function init(){
     ajustarEncabezado();
+    try { const v = localStorage.getItem('diarnec_vista'); if(v === 'grilla' || v === 'lista') viewMode = v; } catch(e){ /* sin storage */ }
+    renderViewToggle();
     try { const t = localStorage.getItem('diarnec_tipo'); if(t === 'comercio' || t === 'particular') tipo = t; } catch(e){ /* sin storage */ }
     await Promise.all([loadProducts(), loadConfig(), loadVendedores()]);
     renderTipo();

@@ -453,13 +453,13 @@ function onClickRanking(e){
 
 function renderCartera(){
   const q = norm($('cartera-buscar').value);
-  const list = cartera.filter(c => !q || norm(`${c.nombre} ${c.localidad}`).includes(q));
+  const list = cartera.filter(c => !q || norm(`${c.nombre} ${c.localidad} ${c.direccion || ''}`).includes(q));
   $('cartera-body').innerHTML = list.length === 0
     ? `<tr><td colspan="7" class="empty">${cartera.length === 0 ? 'Todavía no tenés clientes. Tocá "+ Nuevo cliente" para cargar el primero.' : 'No hay clientes que coincidan.'}</td></tr>`
     : list.map(c => `
       <tr>
         <td><b>${esc(c.nombre)}</b>${c.contacto ? `<br><small style="color:var(--muted);">${esc(c.contacto)}</small>` : ''}</td>
-        <td>${esc(c.localidad || '')}</td>
+        <td>${esc(c.localidad || '')}${c.direccion ? `<br><small style="color:var(--muted);">${esc(c.direccion)}</small>` : ''}</td>
         <td>${esc(c.telefono || '—')}</td>
         <td class="r">${c.compras}</td>
         <td class="r">${money(c.comprado)}</td>
@@ -491,6 +491,7 @@ function abrirCliente(c){
   $('cl-titulo').textContent = c ? `Modificar cliente` : 'Nuevo cliente';
   $('cl-nombre').value = c ? c.nombre : '';
   $('cl-localidad').value = c ? (c.localidad || '') : '';
+  $('cl-direccion').value = c ? (c.direccion || '') : '';
   $('cl-contacto').value = c ? (c.contacto || '') : '';
   $('cl-telefono').value = c ? (c.telefono || '') : '';
   $('cl-err').textContent = '';
@@ -507,7 +508,7 @@ async function guardarCliente(){
   btn.disabled = true;
   const { error } = await sb.rpc('mi_cliente_guardar', {
     p_id: clienteEditando ? clienteEditando.id : null, p_nombre: nombre,
-    p_localidad: $('cl-localidad').value, p_contacto: $('cl-contacto').value, p_telefono: $('cl-telefono').value
+    p_localidad: $('cl-localidad').value, p_direccion: $('cl-direccion').value, p_contacto: $('cl-contacto').value, p_telefono: $('cl-telefono').value
   });
   btn.disabled = false;
   if(error){ err.textContent = error.message; return; }

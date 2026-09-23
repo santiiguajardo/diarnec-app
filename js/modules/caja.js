@@ -12,12 +12,11 @@ let editando = null; // id del gasto que se está modificando (null = cargando u
   const content = await mountLayout('caja', 'Caja');
 
   content.innerHTML = `
-    <div class="caja-bar">
-      <div class="left">
-        <div><span>Cobros:</span><b id="stat-cobros">$0.00</b></div>
-        <div><span>Salidas:</span><b class="salidas" id="stat-salidas">$0.00</b></div>
-      </div>
-      <div><span>CAJA REAL:</span><b class="real" id="stat-real">$0.00</b></div>
+    <div class="caja-resumen">
+      <div class="caja-card"><span>Ingresos del mes</span><b id="stat-ing-mes" class="pos">$0</b></div>
+      <div class="caja-card"><span>Gastos del mes</span><b id="stat-gas-mes" class="neg">$0</b></div>
+      <div class="caja-card"><span>Balance del mes</span><b id="stat-bal-mes">$0</b></div>
+      <div class="caja-card destacada"><span>Balance histórico</span><b id="stat-bal-hist">$0</b></div>
     </div>
 
     <div class="admin-section">
@@ -48,28 +47,44 @@ let editando = null; // id del gasto que se está modificando (null = cargando u
   await cargarTodo();
 })();
 
+// Primer instante del mes actual en Argentina (UTC-3, sin horario de verano).
+function inicioMesAR(){
+  const [y, m] = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' }).split('-');
+  return new Date(`${y}-${m}-01T00:00:00-03:00`);
+}
+
 async function cargarTodo(){
   const [{ data: gs }, { data: ventas }, { data: pagosProv }, { data: pagosVend }, { data: bonis }] = await Promise.all([
     sb.from('gastos').select('id, fecha, created_at, descripcion, monto').eq('anulado', false).order('created_at', { ascending: false }),
-    sb.from('ventas').select('total_neto').eq('estado', 'confirmada'),
-    sb.from('pagos_proveedores').select('monto_neto').eq('anulado', false),
-    sb.from('pagos_vendedores').select('monto').eq('anulado', false),
-    sb.from('bonificaciones').select('monto').eq('anulado', false)
+    sb.from('ventas').select('created_at, total_neto').eq('estado', 'confirmada'),
+    sb.from('pagos_proveedores').select('created_at, monto_neto').eq('anulado', false),
+    sb.from('pagos_vendedores').select('created_at, monto').eq('anulado', false),
+    sb.from('bonificaciones').select('created_at, monto').eq('anulado', false)
   ]);
   gastos = gs || [];
 
-  const cobros = (ventas||[]).reduce((s,v) => s + Number(v.total_neto), 0);
-  const salidas = (gastos||[]).reduce((s,g) => s + Number(g.monto), 0)
-    + (pagosProv||[]).reduce((s,p) => s + Number(p.monto_neto), 0)
-    + (pagosVend||[]).reduce((s,p) => s + Number(p.monto), 0)
-    + (bonis||[]).reduce((s,b) => s + Number(b.monto), 0);
-  const real = cobros - salidas;
+  // Ingresos = lo cobrado por ventas. Gastos = gastos cargados + pagos a proveedores y a vendedores + bonificaciones.
+  // "Del mes" es el mes calendario actual (hora de Argentina); el histórico es todo desde el principio.
+  const desdeMes = inicioMesAR();
+  const suma = (filas, campo, soloMes) => (filas || []).reduce((s, f) =>
+    (!soloMes || new Date(f.created_at) >= desdeMes) ? s + Number(f[campo]) : s, 0);
 
-  document.getElementById('stat-cobros').textContent = money(cobros);
-  document.getElementById('stat-salidas').textContent = money(salidas);
-  const realEl = document.getElementById('stat-real');
-  realEl.textContent = money(real);
-  realEl.className = 'real ' + (real >= 0 ? 'pos' : 'neg');
+  const ingHist = suma(ventas, 'total_neto', false);
+  const gasHist = suma(gastos, 'monto', false) + suma(pagosProv, 'monto_neto', false)
+    + suma(pagosVend, 'monto', false) + suma(bonis, 'monto', false);
+  const ingMes = suma(ventas, 'total_neto', true);
+  const gasMes = suma(gastos, 'monto', true) + suma(pagosProv, 'monto_neto', true)
+    + suma(pagosVend, 'monto', true) + suma(bonis, 'monto', true);
+
+  const pintar = (id, valor, conColor) => {
+    const el = document.getElementById(id);
+    el.textContent = money(valor);
+    if(conColor) el.className = valor >= 0 ? 'pos' : 'neg';
+  };
+  pintar('stat-ing-mes', ingMes, false);
+  pintar('stat-gas-mes', gasMes, false);
+  pintar('stat-bal-mes', ingMes - gasMes, true);
+  pintar('stat-bal-hist', ingHist - gasHist, true);
 
   // Si el gasto que se estaba editando ya no existe (lo borraron en otra pestaña, etc.), se sale del modo edición.
   if(editando !== null && !gastos.some(g => g.id === editando)) cancelarEdicion();
