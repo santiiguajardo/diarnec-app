@@ -16,7 +16,7 @@ const MSG_SIN_ACCESO = 'Tu usuario todavía no tiene acceso configurado. Pedile 
 async function irAlPanel(){
   const perfil = await getPerfil();
   if(!perfil){
-    await sb.auth.signOut();
+    await sb.auth.signOut({ scope: 'local' }); // solo este dispositivo (no cierra las sesiones del mismo usuario en otros equipos)
     errEl.textContent = MSG_SIN_ACCESO;
     return false;
   }

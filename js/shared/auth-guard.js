@@ -15,7 +15,7 @@ export async function getPerfil(){
 }
 
 async function sinAcceso(){
-  await sb.auth.signOut();
+  await sb.auth.signOut({ scope: 'local' }); // solo este dispositivo (no cierra las sesiones del mismo usuario en otros equipos)
   window.location.href = 'login.html?motivo=sin-acceso';
   return null;
 }
@@ -69,7 +69,7 @@ export async function requireVendedor(){
 
 export async function logout(){
   perfilCache = null;
-  await sb.auth.signOut();
+  await sb.auth.signOut({ scope: 'local' }); // solo este dispositivo (no cierra las sesiones del mismo usuario en otros equipos)
   window.location.href = 'login.html';
 }
 
