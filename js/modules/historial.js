@@ -482,15 +482,22 @@ async function guardarEdicion(){
   await cargarTodo();
 }
 
+// Un texto que empiece con = + - @ lo toma Excel como fórmula (ej. un nombre de cliente malicioso): se le antepone un apóstrofe.
+function celdaCSV(v){
+  let t = String(v ?? '');
+  if(/^[=+\-@\t\r]/.test(t)) t = "'" + t;
+  return '"' + t.replace(/"/g, '""') + '"';
+}
+
 function exportarCSV(){
   const list = listaFiltrada();
   const header = ['Fecha','Tipo','Cuenta','Detalle','Usuario','Importe'];
   const lines = [header.join(',')];
   list.forEach(m => {
     const importe = m.importe === null ? '' : (m.signo < 0 ? -m.importe : m.importe);
-    const detalle = `"${(m.detalle || '').replace(/"/g,'""')}"`;
-    const cuenta = `"${(m.cuenta || '').replace(/"/g,'""')}"`;
-    const usuario = `"${(m.usuario || '').replace(/"/g,'""')}"`;
+    const detalle = celdaCSV(m.detalle);
+    const cuenta = celdaCSV(m.cuenta);
+    const usuario = celdaCSV(m.usuario);
     lines.push([dateTime(m.fecha), TIPO_LABEL[m.tipo], cuenta, detalle, usuario, importe].join(','));
   });
   const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });

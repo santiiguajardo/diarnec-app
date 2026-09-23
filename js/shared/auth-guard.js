@@ -1,5 +1,9 @@
 import { sb } from './supabase-client.js';
 
+// Anti-clickjacking: el panel no se muestra dentro de un marco de otra página (GitHub Pages no permite
+// mandar la cabecera X-Frame-Options, así que se corta acá).
+if(window.top !== window.self){ document.documentElement.innerHTML = ''; }
+
 // Roles: 'admin' y 'encargado' usan el panel de gestión; 'vendedor' usa solo su panel (mi-panel.html).
 // El rol vive en la tabla staff_usuarios y lo hace cumplir la base (RLS): esto solo decide a qué
 // pantalla va cada uno.
