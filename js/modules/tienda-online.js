@@ -1,5 +1,5 @@
 import { sb } from '../shared/supabase-client.js';
-import { requireAuth } from '../shared/auth-guard.js';
+import { requireAuth, getPerfil } from '../shared/auth-guard.js';
 import { mountLayout } from '../shared/layout.js';
 import { money, dateTime } from '../shared/format.js';
 import { confirmDialog } from '../shared/dialogs.js';
@@ -17,6 +17,9 @@ const ESTADOS = [
 let pedidos = [];
 let productos = [];
 let editarPedidoId = null;
+let vendedoresMap = {};
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const TIPO_LABEL = { comercio: 'Comercio', particular: 'Particular' };
 
 (async function init(){
   if(!(await requireAuth())) return;
@@ -31,6 +34,20 @@ let editarPedidoId = null;
       <a href="${STORE_URL}" target="_blank" rel="noopener">↗ Abrir tienda online</a>
     </div>
 
+    <div class="admin-section" id="config-section" style="display:none;">
+      <h3>Precios de la tienda</h3>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:12px;">
+        El precio de <b>comercio</b> es el precio de venta de cada producto. Al <b>particular</b> se le suma un porcentaje y se le pide una compra mínima
+        (para que valga la pena el envío). El cambio se aplica al instante en la tienda.
+      </p>
+      <div class="cfg-row">
+        <label>Recargo particulares (%) <input type="number" id="cfg-recargo" min="0" max="500" step="0.5"></label>
+        <label>Compra mínima particulares ($) <input type="number" id="cfg-minimo" min="0" step="1000"></label>
+        <button class="btn-sm btn-add" id="cfg-guardar">Guardar</button>
+        <span id="cfg-msg" class="cfg-msg"></span>
+      </div>
+    </div>
+
     <div class="admin-section">
       <h3>Pedidos online</h3>
       <div class="pedidos-list" id="pedidos-list"></div>
@@ -41,6 +58,12 @@ let editarPedidoId = null;
   document.getElementById('editar-cancelar').addEventListener('click', () => toggleModal('modal-editar', false));
   document.getElementById('editar-guardar').addEventListener('click', guardarEdicion);
   document.getElementById('editar-add').addEventListener('click', () => agregarFilaItem());
+
+  const perfil = await getPerfil();
+  if(perfil && perfil.rol === 'admin') await iniciarConfig();
+
+  const { data: vend } = await sb.from('vendedores').select('id, nombre');
+  vendedoresMap = Object.fromEntries((vend || []).map(v => [v.id, v.nombre]));
 
   const { data: prod } = await sb.from('productos').select('id, nombre, unidad, precio_venta, marcas(nombre, color), categorias(por_peso)').eq('activo', true).order('nombre');
   productos = prod || [];
@@ -54,7 +77,7 @@ function toggleModal(id, open){
 
 async function cargarPedidos(){
   const { data, error } = await sb.from('ventas')
-    .select('id, fecha, created_at, cliente_nombre, cliente_localidad, total_neto, estado, ventas_items(producto_id, cantidad, precio_unitario, subtotal, productos(nombre))')
+    .select('id, fecha, created_at, cliente_nombre, cliente_localidad, cliente_tipo, cliente_cuit, cliente_direccion, vendedor_preferido_id, total_neto, estado, ventas_items(producto_id, cantidad, precio_unitario, subtotal, productos(nombre))')
     .eq('canal', 'online')
     .order('created_at', { ascending: false })
     .limit(100);
@@ -74,12 +97,18 @@ async function cargarPedidos(){
     <details class="pedido">
       <summary>
         <span class="num">#${p.id}</span>
-        <span class="cliente">${p.cliente_nombre || 'Sin nombre'}${p.cliente_localidad ? ' — ' + p.cliente_localidad : ''}</span>
+        <span class="cliente">${esc(p.cliente_nombre || 'Sin nombre')}${dondeEntregar(p) ? ' — ' + esc(dondeEntregar(p)) : ''}${p.cliente_tipo ? ` <span class="tipo-tag tipo-${p.cliente_tipo}">${TIPO_LABEL[p.cliente_tipo]}</span>` : ''}</span>
         <span class="fecha">${dateTime(p.created_at)}</span>
         <span class="total">${money(p.total_neto)}</span>
         <span class="badge ${p.estado}">${ESTADO_LABEL[p.estado] || p.estado}</span>
       </summary>
       <div class="pedido-items">
+        <div class="pedido-datos">
+          <div><b>Tipo:</b> ${p.cliente_tipo ? TIPO_LABEL[p.cliente_tipo] : '—'}</div>
+          ${p.cliente_cuit ? `<div><b>CUIT/CUIL:</b> ${esc(p.cliente_cuit)}</div>` : ''}
+          <div><b>Dirección:</b> ${esc(dondeEntregar(p) || '—')}</div>
+          <div><b>Vendedor elegido por el cliente:</b> ${p.vendedor_preferido_id && vendedoresMap[p.vendedor_preferido_id] ? esc(vendedoresMap[p.vendedor_preferido_id]) : 'Ninguno (pedido a DIARNEC)'}</div>
+        </div>
         <table>
           <thead><tr><th>Producto</th><th>Cant.</th><th>Precio</th><th>Subtotal</th></tr></thead>
           <tbody>
@@ -104,6 +133,27 @@ async function cargarPedidos(){
         </div>
       </div>
     </details>`).join('');
+}
+
+// Los pedidos viejos guardaban la localidad; los nuevos, la dirección de entrega.
+function dondeEntregar(p){ return p.cliente_direccion || p.cliente_localidad || ''; }
+
+async function iniciarConfig(){
+  const sec = document.getElementById('config-section');
+  const { data } = await sb.from('tienda_config').select('recargo_particular_pct, minimo_particular').maybeSingle();
+  if(!data) return;
+  sec.style.display = '';
+  document.getElementById('cfg-recargo').value = Number(data.recargo_particular_pct);
+  document.getElementById('cfg-minimo').value = Number(data.minimo_particular);
+  document.getElementById('cfg-guardar').addEventListener('click', async () => {
+    const msg = document.getElementById('cfg-msg');
+    const recargo = parseFloat(document.getElementById('cfg-recargo').value);
+    const minimo = parseFloat(document.getElementById('cfg-minimo').value);
+    if(isNaN(recargo) || isNaN(minimo)){ msg.className = 'cfg-msg err'; msg.textContent = 'Completá los dos valores.'; return; }
+    const { error } = await sb.rpc('guardar_config_tienda', { p_recargo: recargo, p_minimo: minimo });
+    msg.className = 'cfg-msg ' + (error ? 'err' : 'ok');
+    msg.textContent = error ? error.message : 'Guardado. Ya se aplica en la tienda.';
+  });
 }
 
 async function onClickPedidos(e){
@@ -311,8 +361,9 @@ async function generarComprobante(id){
   doc.setTextColor(0,0,0);
 
   doc.setFontSize(10);
-  doc.text(`Cliente: ${p.cliente_nombre || 'Sin nombre'}`, 14, 44);
-  doc.text(`Localidad: ${p.cliente_localidad || '-'}`, 14, 50);
+  doc.text(`Cliente: ${p.cliente_nombre || 'Sin nombre'}${p.cliente_tipo ? ' (' + TIPO_LABEL[p.cliente_tipo] + ')' : ''}`, 14, 44);
+  doc.text(`Dirección: ${dondeEntregar(p) || '-'}`, 14, 50);
+  if(p.cliente_cuit) doc.text(`CUIT/CUIL: ${p.cliente_cuit}`, 120, 44);
 
   const body = (p.ventas_items || []).map(it => [
     it.productos ? it.productos.nombre : '',

@@ -78,8 +78,8 @@ let comisionesMap = {}; // "vendedorId:marcaId" -> %
 
 async function cargarBase(){
   const [{ data: vd }, { data: cl }, { data: mc }, { data: pr }, { data: cm }] = await Promise.all([
-    sb.from('vendedores').select('id, nombre, activo, es_canal_online').order('nombre'),
-    sb.from('clientes').select('id, nombre, localidad, activo, vendedor_id').is('vendedor_id', null).order('nombre'),
+    sb.from('vendedores').select('id, nombre, telefono, activo, es_canal_online').order('nombre'),
+    sb.from('clientes').select('id, nombre, localidad, cuit, activo, vendedor_id').is('vendedor_id', null).order('nombre'),
     sb.from('marcas').select('id, nombre').order('nombre'),
     sb.from('productos').select('id, nombre, unidad, precio_venta, marca_id, marcas(nombre, color), categorias(por_peso)').eq('activo', true).order('nombre'),
     sb.from('comisiones_vendedor_marca').select('vendedor_id, marca_id, comision_pct')
@@ -215,11 +215,13 @@ function cerrarModal(id){ document.getElementById(id).classList.remove('open'); 
 function renderVendedoresList(){
   const tbody = document.getElementById('vd-body');
   const fijo = vendedorOnline
-    ? `<tr><td>${vendedorOnline.nombre}<span class="tag-fijo">fijo · sin comisión</span></td><td></td></tr>`
+    ? `<tr><td>${vendedorOnline.nombre}<span class="tag-fijo">fijo · sin comisión</span></td><td></td><td></td></tr>`
     : '';
   tbody.innerHTML = fijo + vendedores.map(v => `
     <tr class="${v.activo ? '' : 'inactive-row'}">
       <td>${v.nombre}</td>
+      <td><input class="cell-tel" type="tel" placeholder="Sin cargar" value="${(v.telefono || '').replace(/"/g, '&quot;')}"
+           onchange="window.vdTelefono(${v.id},this)"></td>
       <td><div class="row-actions">
         <button class="btn-sm ${v.activo ? 'btn-grey' : 'btn-add'}" onclick="window.vdToggle(${v.id},${v.activo})">${v.activo ? 'Baja' : 'Alta'}</button>
         <button class="btn-sm btn-del" onclick="window.vdBorrar(${v.id})">Borrar</button>
@@ -230,9 +232,11 @@ function renderVendedoresList(){
 async function agregarVendedor(){
   const nombre = document.getElementById('vd-nombre').value.trim();
   if(!nombre){ alert('Ingresá el nombre del vendedor.'); return; }
-  const { error } = await sb.from('vendedores').insert({ nombre });
+  const telefono = document.getElementById('vd-tel').value.trim();
+  const { error } = await sb.from('vendedores').insert({ nombre, telefono });
   if(error){ alert('No se pudo agregar: ' + error.message); return; }
   document.getElementById('vd-nombre').value = '';
+  document.getElementById('vd-tel').value = '';
   await cargarBase();
   await cargarSaldos();
 }
@@ -251,6 +255,19 @@ async function vdBorrar(id){
   }
   await cargarBase();
   await cargarSaldos();
+}
+
+// WhatsApp del vendedor: es el número al que le llega el pedido cuando un cliente lo elige en la tienda.
+async function vdTelefono(id, input){
+  const telefono = input.value.trim();
+  const solo = telefono.replace(/\D/g, '');
+  if(telefono && solo.length < 10){ alert('Ingresá el número con código de área, sin 0 ni 15 (ej: 2262357262).'); return; }
+  const { error } = await sb.from('vendedores').update({ telefono }).eq('id', id);
+  if(error){ alert('No se pudo guardar: ' + error.message); return; }
+  const v = vendedores.find(v => v.id === id);
+  if(v) v.telefono = telefono;
+  input.classList.add('saved');
+  setTimeout(() => input.classList.remove('saved'), 1200);
 }
 
 async function vdToggle(id, estabaActivo){
@@ -310,7 +327,7 @@ function renderClientesList(){
   const tbody = document.getElementById('cl-body');
   tbody.innerHTML = clientes.map(c => `
     <tr class="${c.activo ? '' : 'inactive-row'}">
-      <td>${c.nombre}</td><td>${c.localidad || ''}</td>
+      <td>${c.nombre}</td><td>${c.cuit || ''}</td><td>${c.localidad || ''}</td>
       <td><div class="row-actions">
         <button class="btn-sm ${c.activo ? 'btn-grey' : 'btn-add'}" onclick="window.clToggle(${c.id},${c.activo})">${c.activo ? 'Baja' : 'Alta'}</button>
         <button class="btn-sm btn-del" onclick="window.clBorrar(${c.id})">Borrar</button>
@@ -338,10 +355,13 @@ async function agregarCliente(){
   const nombre = document.getElementById('cl-nombre').value.trim();
   const localidad = document.getElementById('cl-localidad').value.trim();
   if(!nombre){ alert('Ingresá el nombre del cliente.'); return; }
-  const { error } = await sb.from('clientes').insert({ nombre, localidad, vendedor_id: null });
+  const cuit = document.getElementById('cl-cuit').value.replace(/\D/g, '');
+  if(cuit && cuit.length !== 11){ alert('El CUIT o CUIL tiene 11 números.'); return; }
+  const { error } = await sb.from('clientes').insert({ nombre, localidad, cuit: cuit || null, vendedor_id: null });
   if(error){ alert('No se pudo agregar: ' + error.message); return; }
   document.getElementById('cl-nombre').value = '';
   document.getElementById('cl-localidad').value = '';
+  document.getElementById('cl-cuit').value = '';
   await cargarBase();
   await cargarSaldos();
 }
@@ -464,14 +484,18 @@ function leerItems(tbodyId, err){
 // ===== 1. Cargar retiro / venta =====
 
 // pedido (opcional): pedido online que se pasa a venta. Entra con sus productos ya cargados y con el
-// vendedor "Tienda Online" elegido (y fijo, porque las ventas de la tienda van siempre con él).
+// vendedor que el cliente eligió en la tienda (o "Tienda Online" si no eligió ninguno). Se puede cambiar:
+// si es un cliente habitual se le asigna un vendedor, y la venta y el cliente pasan a su cuenta.
 function abrirModalRetiro(pedido = null){
   if(pedido && !vendedorOnline){ alert('No se encontró el vendedor "Tienda Online".'); return; }
   pedidoEnCurso = pedido;
   const sel = document.getElementById('rt-vendedor');
-  sel.disabled = !!pedido;
+  sel.disabled = false;
   sel.selectedIndex = 0;
-  if(pedido) sel.value = String(vendedorOnline.id);
+  if(pedido){
+    const elegido = pedido.vendedor_preferido_id && vendedores.find(v => v.id === pedido.vendedor_preferido_id && v.activo);
+    sel.value = String(elegido ? elegido.id : vendedorOnline.id);
+  }
 
   document.getElementById('rt-items').innerHTML = '';
   resetTotales('rt');
@@ -483,8 +507,12 @@ function abrirModalRetiro(pedido = null){
   const banner = document.getElementById('rt-pedido');
   banner.style.display = pedido ? '' : 'none';
   if(pedido){
-    banner.textContent = `Pedido online de ${pedido.cliente_nombre || 'cliente sin nombre'}${pedido.cliente_localidad ? ' (' + pedido.cliente_localidad + ')' : ''}. ` +
-      'Podés ajustar los productos antes de confirmar; la venta se registra con el vendedor Tienda Online (sin comisión).';
+    const dir = pedido.cliente_direccion || pedido.cliente_localidad;
+    banner.textContent = `Pedido online de ${pedido.cliente_nombre || 'cliente sin nombre'}` +
+      `${pedido.cliente_tipo ? ' (' + (pedido.cliente_tipo === 'comercio' ? 'comercio' : 'particular') + ')' : ''}` +
+      `${pedido.cliente_cuit ? ' · CUIT/CUIL ' + pedido.cliente_cuit : ''}${dir ? ' · ' + dir : ''}. ` +
+      'Podés ajustar los productos antes de confirmar. Elegí el vendedor: si es un cliente habitual con vendedor, la venta va a su cuenta ' +
+      '(con su comisión) y el cliente queda en su cartera. Con "Tienda Online" no lleva comisión y el cliente queda como directo.';
   }
 
   const items = pedido ? (pedido.ventas_items || []) : [];
@@ -507,7 +535,7 @@ async function abrirPedidoDesdeUrl(){
   if(!id) return;
   history.replaceState(null, '', location.pathname); // que al recargar no se reabra solo
   const { data: p, error } = await sb.from('ventas')
-    .select('id, estado, cliente_nombre, cliente_localidad, ventas_items(id, producto_id, cantidad, precio_unitario)')
+    .select('id, estado, cliente_nombre, cliente_localidad, cliente_tipo, cliente_cuit, cliente_direccion, vendedor_preferido_id, ventas_items(id, producto_id, cantidad, precio_unitario)')
     .eq('id', id).eq('canal', 'online').maybeSingle();
   if(error || !p){ alert(`No se encontró el pedido online #${id}.`); return; }
   if(p.estado === 'confirmada'){ alert(`El pedido #${id} ya está registrado como venta.`); return; }
@@ -527,7 +555,7 @@ async function confirmarRetiro(){
 
   // Pedido online: se confirma el pedido existente (no se crea una venta nueva)
   const { data: ventaId, error } = pedidoEnCurso
-    ? await sb.rpc('pasar_pedido_a_venta', { p_venta_id: pedidoEnCurso.id, p_items: items })
+    ? await sb.rpc('pasar_pedido_a_venta', { p_venta_id: pedidoEnCurso.id, p_items: items, p_vendedor_id: Number(vendedorId) })
     : await sb.rpc('registrar_venta_manual', {
         p_vendedor_id: Number(vendedorId), p_items: items, p_cliente_id: clienteId ? Number(clienteId) : null
       });
@@ -688,4 +716,4 @@ async function limpiarCuentasCorrientes(){
   await cargarSaldos();
 }
 
-Object.assign(window, { vdToggle, vdBorrar, clToggle, clBorrar, cmGuardar });
+Object.assign(window, { vdToggle, vdBorrar, vdTelefono, clToggle, clBorrar, cmGuardar });

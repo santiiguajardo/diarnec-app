@@ -1,6 +1,7 @@
 import { sb } from '../shared/supabase-client.js';
 import { requireAdmin } from '../shared/auth-guard.js';
 import { mountLayout } from '../shared/layout.js';
+import { montarAlertasVencimiento } from '../shared/alertas-vencimiento.js';
 import { money, dateTime } from '../shared/format.js';
 
 // Paleta: Black russian / Alucard night / Palatinate blue / Grey placidity / Baby grey.
@@ -43,8 +44,10 @@ const finIso = iso => { const d = new Date(`${iso}T00:00:00-03:00`); d.setDate(d
       <button class="btn-cmp" id="w-cmp">⇄ Comparar semana</button>
       <div class="dash-cmp-box" id="w-cmp-box">comparar con <select id="w-cmp-sel"></select></div>
     </div>
+    <div id="venc-box"></div>
     <div id="dash-body"><div class="rk-vacio">Cargando…</div></div>
   `;
+  montarAlertasVencimiento($('venc-box'));
 
   $('w-sel').addEventListener('change', e => elegirSemana(Number(e.target.value)));
   $('w-prev').addEventListener('click', () => elegirSemana(selIdx + 1));

@@ -1,6 +1,7 @@
 import { sb } from '../shared/supabase-client.js';
 import { requireAuth } from '../shared/auth-guard.js';
 import { mountLayout } from '../shared/layout.js';
+import { montarAlertasVencimiento } from '../shared/alertas-vencimiento.js';
 import { money } from '../shared/format.js';
 import { confirmDialog, promptDialog } from '../shared/dialogs.js';
 import { esPorPeso, cantidadEsValida, mensajeCantidad } from '../shared/cantidad.js';
@@ -60,6 +61,7 @@ async function deshacer(){
   const content = await mountLayout('inventario', 'Inventario y precios');
 
   content.innerHTML = `
+    <div id="venc-box"></div>
     <div class="stats-bar">
       <div><span>Total Artículos:</span><b id="stat-total">0</b></div>
       <div><span>Capital en Stock (Costo):</span><b id="stat-capital">$0</b></div>
@@ -138,6 +140,7 @@ async function deshacer(){
       </table>
     </div>
   `;
+  montarAlertasVencimiento(document.getElementById('venc-box'));
 
   document.getElementById('f-texto').addEventListener('input', e => { filtroTexto = e.target.value.trim().toLowerCase(); renderTabla(); });
   document.getElementById('f-marca').addEventListener('change', e => { filtroMarca = e.target.value; renderTabla(); });
