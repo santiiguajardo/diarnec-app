@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DIARNEC — Panel de gestión</title>
+<title>DIARNEC — Ingresar</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@0,62..125,100..900;1,62..125,100..900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -11,15 +11,19 @@
 <link rel="stylesheet" href="../css/tokens.css">
 <link rel="stylesheet" href="../css/shared.css">
 <style>
-  body{display:flex;min-height:100vh;align-items:center;justify-content:center;}
-  .lock{margin:0;}
+  body{display:flex;flex-direction:column;min-height:100vh;align-items:center;justify-content:center;gap:26px;padding:28px 16px;background:#000;}
+  .login-logo{display:block;width:min(230px,62vw);height:auto;}
+  .lock{margin:0;width:100%;max-width:340px;}
+  .lock h2{font-size:22px;letter-spacing:-.03em;}
 </style>
 </head>
 <body>
 
+<img class="login-logo" src="../img/logo-login.png" alt="DIARNEC" width="230" height="178">
+
 <div id="admin-lock" class="lock">
-  <h2>Panel de gestión</h2>
-  <p>Ingresá con tu usuario y contraseña.</p>
+  <h2>Bienvenido</h2>
+  <p>Ingresá con tu usuario y contraseña para empezar.</p>
   <input type="text" id="admin-user" placeholder="Usuario" autocomplete="username">
   <input type="password" id="admin-pass" placeholder="Contraseña" autocomplete="current-password">
   <button id="login-btn">Ingresar</button>
