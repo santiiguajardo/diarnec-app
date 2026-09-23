@@ -287,6 +287,10 @@
     document.getElementById('tipo-comercio').classList.toggle('active', tipo === 'comercio');
     document.getElementById('tipo-particular').classList.toggle('active', tipo === 'particular');
     document.getElementById('cuit-wrap').style.display = tipo === 'comercio' ? '' : 'none';
+    // El vendedor se puede elegir solo si compra como comercio
+    const vendWrap = document.getElementById('vend-wrap');
+    vendWrap.style.display = tipo === 'comercio' && vendedores.length ? '' : 'none';
+    if(tipo !== 'comercio') document.getElementById('shop-vend').value = '';
     document.getElementById('lbl-name').textContent = tipo === 'comercio' ? 'Nombre del comercio' : 'Nombre y apellido';
     document.getElementById('tipo-note').textContent =
       tipo === 'comercio' ? 'Precio de venta a comercios. Para registrarte necesitamos el CUIT o CUIL.' :
@@ -335,7 +339,7 @@
     if(falta > 0){ showErr(`La compra mínima para particulares es de ${money(config.minimo)}. Te faltan ${money(falta)}.`); return; }
     showErr('');
 
-    const vendedor = vendId ? vendedores.find(v => String(v.id) === vendId) : null;
+    const vendedor = tipo === 'comercio' && vendId ? vendedores.find(v => String(v.id) === vendId) : null;
     const numero = vendedor && waNumber(vendedor.telefono).length >= 12 ? waNumber(vendedor.telefono) : WHATSAPP_NUMBER;
 
     // Se abre la ventana ya (dentro del click) para que el navegador no bloquee el WhatsApp de después.
@@ -393,7 +397,7 @@
     const sel = document.getElementById('shop-vend');
     sel.innerHTML = '<option value="">Sin preferencia (te atiende DIARNEC)</option>' +
       vendedores.map(v => `<option value="${v.id}">${esc(v.nombre)}</option>`).join('');
-    document.getElementById('vend-wrap').style.display = vendedores.length ? '' : 'none';
+    renderTipo();
   }
 
   async function loadProducts(){
