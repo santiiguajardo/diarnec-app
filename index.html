@@ -290,7 +290,7 @@
     document.getElementById('lbl-name').textContent = tipo === 'comercio' ? 'Nombre del comercio' : 'Nombre y apellido';
     document.getElementById('tipo-note').textContent =
       tipo === 'comercio' ? 'Precio de venta a comercios. Para registrarte necesitamos el CUIT o CUIL.' :
-      tipo === 'particular' ? `Precio para particulares (${config.recargo}% sobre el precio de comercio). Compra mínima ${money(config.minimo)}.` :
+      tipo === 'particular' ? `Precio para particulares. Compra mínima ${money(config.minimo)}.` :
       'Elegí cómo comprás: el precio se ajusta solo.';
     document.getElementById('price-note').textContent =
       `Compra mínima para particulares: ${money(config.minimo)}.`;
