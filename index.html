@@ -138,7 +138,6 @@
     <h1>Armá tu carrito y coordinamos por WhatsApp</h1>
     <p>Venta mayorista de productos alimenticios de calidad y alta rotación</p>
   </div>
-  <div class="price-note" id="price-note"></div>
   <div class="toolbar">
     <div class="view-toggle" role="group" aria-label="Vista">
       <button type="button" id="view-grilla" onclick="setView('grilla')">▦ Grilla</button>
@@ -343,8 +342,6 @@
       tipo === 'comercio' ? 'Precio de venta a comercios. Para registrarte necesitamos el CUIT o CUIL.' :
       tipo === 'particular' ? `Precio para particulares. Compra mínima ${money(config.minimo)}.` :
       'Elegí cómo comprás: el precio se ajusta solo.';
-    document.getElementById('price-note').textContent =
-      `Compra mínima para particulares: ${money(config.minimo)}.`;
   }
   function setTipo(t){
     tipo = t;
