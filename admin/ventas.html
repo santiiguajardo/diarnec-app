@@ -62,6 +62,8 @@
   .pedido-banner{background:#eef6f1;border:1px solid #bfe0cd;color:#1e6b46;border-radius:8px;padding:9px 12px;font-size:12px;margin-bottom:4px;}
   .tag-fijo{display:inline-block;margin-left:6px;padding:2px 8px;border-radius:100px;background:var(--paper);color:var(--muted);font-size:10px;font-weight:600;}
 
+  .cell-tel{width:150px;padding:6px 8px;border:1px solid var(--line);border-radius:6px;font-size:13px;}
+  .cell-tel.saved{border-color:#2BB673;background:#E4F6EC;}
   .mini-form{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;}
   .mini-form input{flex:1;min-width:90px;width:auto;}
   .mini-form select{flex:1;min-width:90px;width:auto;}
@@ -97,9 +99,11 @@
     <h3>Gestionar vendedores</h3>
     <div class="mini-form">
       <input type="text" id="vd-nombre" placeholder="Nombre">
+      <input type="tel" id="vd-tel" placeholder="WhatsApp (ej: 2262357262)">
       <button id="vd-agregar">+ Agregar</button>
     </div>
-    <div class="mini-list"><table><thead><tr><th>Nombre</th><th></th></tr></thead><tbody id="vd-body"></tbody></table></div>
+    <p style="font-size:12px;color:var(--muted);margin:-4px 0 10px;">El WhatsApp va con código de área, sin 0 ni 15. Es el número al que le llega el pedido cuando un cliente elige a ese vendedor en la tienda online (si no tiene número, no aparece en la tienda).</p>
+    <div class="mini-list"><table><thead><tr><th>Nombre</th><th>WhatsApp</th><th></th></tr></thead><tbody id="vd-body"></tbody></table></div>
     <div class="modal-actions"><button class="modal-cancel" id="vd-cerrar">Cerrar</button></div>
   </div>
 </div>
@@ -123,10 +127,11 @@
     <p style="font-size:12px;color:var(--muted);margin-bottom:10px;">Estos son tus clientes directos. Los que cada vendedor carga en su propia cartera no aparecen aca, son cuenta de ese vendedor.</p>
     <div class="mini-form">
       <input type="text" id="cl-nombre" placeholder="Nombre">
+      <input type="text" id="cl-cuit" placeholder="CUIT / CUIL" style="max-width:130px;">
       <input type="text" id="cl-localidad" placeholder="Localidad" style="max-width:120px;">
       <button id="cl-agregar">+ Agregar</button>
     </div>
-    <div class="mini-list"><table><thead><tr><th>Nombre</th><th>Localidad</th><th></th></tr></thead><tbody id="cl-body"></tbody></table></div>
+    <div class="mini-list"><table><thead><tr><th>Nombre</th><th>CUIT / CUIL</th><th>Localidad</th><th></th></tr></thead><tbody id="cl-body"></tbody></table></div>
     <div class="modal-actions"><button class="modal-cancel" id="cl-cerrar">Cerrar</button></div>
   </div>
 </div>

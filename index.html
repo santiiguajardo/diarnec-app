@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DIARNEC — App de gestión</title>
+<title>DIARNEC — Venta mayorista de alimentos</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
@@ -87,6 +87,14 @@
   .checkout-btn{width:100%;padding:12px;border:none;border-radius:10px;margin-top:6px;background:#25D366;color:#fff;font-weight:700;font-size:14px;cursor:pointer;}
   .checkout-btn:disabled{opacity:0.5;}
   .err{color:#C0392B;font-size:12px;margin-top:5px;display:none;}
+  .field select{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px;background:#fff;}
+  .tipo-seg{display:flex;gap:8px;margin-bottom:12px;}
+  .tipo-seg button{flex:1;padding:10px 6px;border:1.5px solid var(--line);border-radius:10px;background:#fff;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;}
+  .tipo-seg button.active{border-color:var(--navy);background:var(--navy);color:#fff;}
+  .tipo-note{font-size:12px;color:var(--muted);margin:-4px 0 10px;line-height:1.35;}
+  .min-note{font-size:12px;border-radius:8px;padding:8px 10px;margin-bottom:10px;background:#FFF4E5;color:#9A5B00;display:none;}
+  .price-note{background:#fff;border-bottom:1px solid var(--line);color:var(--muted);font-size:12.5px;text-align:center;padding:9px 16px;}
+  .drawer-foot{max-height:62vh;overflow-y:auto;}
 
   .empty-row{color:var(--muted);text-align:center;padding:24px;}
 
@@ -106,8 +114,9 @@
 <div id="view-store">
   <div class="hero">
     <h1>Armá tu carrito y coordinamos por WhatsApp</h1>
-    <p>Catálogo para almacenes, autoservicios y comercios gastronómicos · Necochea, Quequén, La Dulce y San Cayetano</p>
+    <p>Venta mayorista de productos alimenticios de calidad y alta rotación</p>
   </div>
+  <div class="price-note" id="price-note"></div>
   <div class="toolbar">
     <label>Ordenar por
       <select id="sort" onchange="setSort(this.value)">
@@ -125,7 +134,7 @@
 
 <footer>
   <div><b>DIARNEC</b> — distribuidora de alimentos</div>
-  <div style="margin-top:6px;">Costa Atlántica · Reparto de lunes a sábado</div>
+  <div style="margin-top:6px;">Necochea, Quequén, Juan N. Fernández, La Dulce, San Cayetano · Reparto de lunes a sábado</div>
 </footer>
 
 <div class="overlay" id="overlay" onclick="closeCart()"></div>
@@ -134,9 +143,18 @@
   <div class="drawer-items" id="drawer-items"></div>
   <div class="drawer-foot">
     <div class="total"><span>Total</span><span id="total">$0</span></div>
-    <div class="field"><label>Nombre del comercio</label><input type="text" id="shop-name" placeholder="Ej: Almacén Don José"></div>
-    <div class="field"><label>Localidad</label><input type="text" id="shop-loc" placeholder="Ej: Necochea"></div>
-    <div class="err" id="err-msg">Agregá al menos un producto y el nombre del comercio.</div>
+    <div class="tipo-seg" role="group" aria-label="Tipo de cliente">
+      <button type="button" id="tipo-comercio" onclick="setTipo('comercio')">Comercio</button>
+      <button type="button" id="tipo-particular" onclick="setTipo('particular')">Particular</button>
+    </div>
+    <div class="tipo-note" id="tipo-note">Elegí cómo comprás: el precio se ajusta solo.</div>
+    <div class="field"><label id="lbl-name">Nombre</label><input type="text" id="shop-name" placeholder="Ej: Almacén Don José" maxlength="120"></div>
+    <div class="field" id="cuit-wrap" style="display:none;"><label>CUIT o CUIL</label><input type="text" id="shop-cuit" inputmode="numeric" placeholder="Ej: 20-12345678-9" maxlength="14"></div>
+    <div class="field"><label>Dirección de entrega</label><input type="text" id="shop-dir" placeholder="Ej: Calle 64 Nº 2350, Necochea" maxlength="200"></div>
+    <div class="field" id="vend-wrap" style="display:none;"><label>¿Querés que te atienda un vendedor? (opcional)</label>
+      <select id="shop-vend"><option value="">Sin preferencia (te atiende DIARNEC)</option></select></div>
+    <div class="min-note" id="min-note"></div>
+    <div class="err" id="err-msg"></div>
     <button class="checkout-btn" onclick="checkout()">Finalizar pedido por WhatsApp</button>
   </div>
 </div>
@@ -151,6 +169,14 @@
   let activeCat = "Todos";
   let sortBy = "price_desc"; // al abrir, lo más caro primero
   const cart = {};
+
+  // Dos precios: "comercio" = precio de lista; "particular" = lista + recargo, con compra mínima.
+  // El servidor recalcula todo (precio y mínimo) al registrar el pedido: esto es solo lo que se muestra.
+  let tipo = null; // 'comercio' | 'particular' | null (todavía no eligió; se muestran precios de comercio)
+  let config = { recargo: 25, minimo: 50000 };
+  let vendedores = [];
+  const priceFor = p => tipo === 'particular' ? Math.round(p.price * (1 + config.recargo / 100) * 100) / 100 : p.price;
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
   const SORTERS = {
     price_desc: (a, b) => b.price - a.price,
@@ -197,7 +223,7 @@
         }
         <div class="name">${p.name}</div>
         <div class="unit">${p.brand}${p.unit ? ' · ' + p.unit : ''}</div>
-        <div class="price">${money(p.price)}</div>
+        <div class="price">${money(priceFor(p))}</div>
         ${qty === 0
           ? `<button class="add-btn" onclick="addToCart(${p.id})">Agregar</button>`
           : `<div class="stepper"><button onclick="changeQty(${p.id},-1)">−</button><span>${qty}</span><button onclick="changeQty(${p.id},1)">+</button></div>`
@@ -215,7 +241,7 @@
   function cartTotal(){
     return Object.entries(cart).reduce((sum,[id,qty]) => {
       const p = products.find(p => p.id == id);
-      return p ? sum + p.price * qty : sum;
+      return p ? sum + priceFor(p) * qty : sum;
     }, 0);
   }
 
@@ -232,61 +258,137 @@
         if(!p) return '';
         return `
         <div class="d-item">
-          <div class="info"><b>${p.name}</b><span>${p.brand} · ${money(p.price)} c/u</span></div>
+          <div class="info"><b>${p.name}</b><span>${p.brand} · ${money(priceFor(p))} c/u</span></div>
           <div class="stepper"><button onclick="changeQty(${p.id},-1)">−</button><span>${qty}</span><button onclick="changeQty(${p.id},1)">+</button></div>
         </div>`;
       }).join('');
     }
     document.getElementById('total').textContent = money(cartTotal());
+    renderMinNote();
+  }
+
+  function faltaParaMinimo(){
+    const total = cartTotal();
+    return tipo === 'particular' && total > 0 && total < config.minimo ? config.minimo - total : 0;
+  }
+  function renderMinNote(){
+    const el = document.getElementById('min-note');
+    const falta = faltaParaMinimo();
+    el.style.display = falta > 0 ? 'block' : 'none';
+    if(falta > 0) el.textContent = `La compra mínima para particulares es de ${money(config.minimo)}. Te faltan ${money(falta)}.`;
+  }
+
+  function renderTipo(){
+    document.getElementById('tipo-comercio').classList.toggle('active', tipo === 'comercio');
+    document.getElementById('tipo-particular').classList.toggle('active', tipo === 'particular');
+    document.getElementById('cuit-wrap').style.display = tipo === 'comercio' ? '' : 'none';
+    document.getElementById('lbl-name').textContent = tipo === 'comercio' ? 'Nombre del comercio' : 'Nombre y apellido';
+    document.getElementById('tipo-note').textContent =
+      tipo === 'comercio' ? 'Precio de venta a comercios. Para registrarte necesitamos el CUIT o CUIL.' :
+      tipo === 'particular' ? `Precio para particulares (${config.recargo}% sobre el precio de comercio). Compra mínima ${money(config.minimo)}.` :
+      'Elegí cómo comprás: el precio se ajusta solo.';
+    document.getElementById('price-note').textContent =
+      `Precios para comercios. Compras de particulares: ${config.recargo}% más y mínimo de ${money(config.minimo)}.`;
+  }
+  function setTipo(t){
+    tipo = t;
+    try { localStorage.setItem('diarnec_tipo', t); } catch(e){ /* sin storage */ }
+    renderTipo(); renderGrid(); renderCart();
+    document.getElementById('err-msg').style.display = 'none';
+  }
+
+  // Número de WhatsApp en formato internacional argentino (549 + área + número, sin 0 ni 15).
+  function waNumber(tel){
+    let d = String(tel || '').replace(/\D/g, '').replace(/^0+/, '');
+    if(d.startsWith('54')) return d.startsWith('549') ? d : '549' + d.slice(2);
+    return '549' + d;
   }
 
   function openCart(){ document.getElementById('drawer').classList.add('open'); document.getElementById('overlay').classList.add('open'); }
   function closeCart(){ document.getElementById('drawer').classList.remove('open'); document.getElementById('overlay').classList.remove('open'); }
 
+  function showErr(msg){
+    const el = document.getElementById('err-msg');
+    el.textContent = msg;
+    el.style.display = msg ? 'block' : 'none';
+  }
+
   async function checkout(){
     const items = Object.entries(cart);
-    const shopName = document.getElementById('shop-name').value.trim();
-    const shopLoc = document.getElementById('shop-loc').value.trim();
-    const errEl = document.getElementById('err-msg');
+    const nombre = document.getElementById('shop-name').value.trim();
+    const cuit = document.getElementById('shop-cuit').value.trim();
+    const dir = document.getElementById('shop-dir').value.trim();
+    const vendId = document.getElementById('shop-vend').value;
     const btn = document.querySelector('.checkout-btn');
-    if(items.length === 0 || shopName === ""){ errEl.style.display = "block"; return; }
-    errEl.style.display = "none";
 
-    const total = cartTotal();
-    const itemLines = items.map(([id,qty]) => {
-      const p = products.find(p => p.id == id);
-      return { name: p.name, qty, subtotal: p.price * qty };
-    });
+    if(items.length === 0){ showErr('Agregá al menos un producto.'); return; }
+    if(!tipo){ showErr('Elegí si comprás como Comercio o como Particular.'); return; }
+    if(!nombre){ showErr(tipo === 'comercio' ? 'Ingresá el nombre del comercio.' : 'Ingresá tu nombre.'); return; }
+    if(tipo === 'comercio' && cuit.replace(/\D/g, '').length !== 11){ showErr('Ingresá el CUIT o CUIL (11 números).'); return; }
+    if(!dir){ showErr('Ingresá la dirección de entrega.'); return; }
+    const falta = faltaParaMinimo();
+    if(falta > 0){ showErr(`La compra mínima para particulares es de ${money(config.minimo)}. Te faltan ${money(falta)}.`); return; }
+    showErr('');
 
-    let msg = `Hola DIARNEC, quiero hacer un pedido:%0A%0A`;
-    itemLines.forEach(l => { msg += `• ${l.qty}x ${l.name} - ${money(l.subtotal)}%0A`; });
-    msg += `%0ATotal: ${money(total)}%0AComercio: ${shopName}%0A`;
-    if(shopLoc) msg += `Localidad: ${shopLoc}%0A`;
+    const vendedor = vendId ? vendedores.find(v => String(v.id) === vendId) : null;
+    const numero = vendedor && waNumber(vendedor.telefono).length >= 12 ? waNumber(vendedor.telefono) : WHATSAPP_NUMBER;
 
+    // Se abre la ventana ya (dentro del click) para que el navegador no bloquee el WhatsApp de después.
+    const win = window.open('', '_blank');
     btn.disabled = true;
     btn.textContent = 'Enviando pedido...';
 
     const rpcItems = items.map(([id, qty]) => ({ producto_id: Number(id), cantidad: qty }));
-    const { data: ventaId, error } = await sb.rpc('crear_venta_online', {
-      p_cliente_nombre: shopName, p_cliente_localidad: shopLoc || null, p_items: rpcItems
+    const { data, error } = await sb.rpc('crear_pedido_online', {
+      p_cliente_nombre: nombre, p_tipo: tipo, p_cuit: tipo === 'comercio' ? cuit : null, p_direccion: dir,
+      p_vendedor_id: vendedor ? vendedor.id : null, p_items: rpcItems
     });
 
     btn.disabled = false;
     btn.textContent = 'Finalizar pedido por WhatsApp';
 
     if(error){
-      alert('No pudimos registrar el pedido: ' + error.message);
+      if(win) win.close();
+      showErr('No pudimos registrar el pedido: ' + error.message);
+      if(/ya no está disponible/.test(error.message)){
+        await loadProducts();
+        Object.keys(cart).forEach(id => { if(!products.find(p => p.id == id)) delete cart[id]; });
+        renderFilters(); renderGrid(); renderCart();
+      }
       return;
     }
-    msg += `%0APedido #${ventaId}`;
 
-    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`, '_blank');
+    const total = data && data.total != null ? Number(data.total) : cartTotal();
+    const lines = [vendedor ? `Hola ${vendedor.nombre}, quiero hacer un pedido en DIARNEC:` : 'Hola DIARNEC, quiero hacer un pedido:', ''];
+    items.forEach(([id, qty]) => {
+      const p = products.find(p => p.id == id);
+      if(p) lines.push(`• ${qty}x ${p.name} - ${money(priceFor(p) * qty)}`);
+    });
+    lines.push('', `Total: ${money(total)}`,
+      tipo === 'comercio' ? `Comercio: ${nombre}` : `Nombre: ${nombre}`);
+    if(tipo === 'comercio') lines.push(`CUIT/CUIL: ${cuit}`); else lines.push('Compra como particular');
+    lines.push(`Dirección: ${dir}`, `Pedido #${data && data.id}`);
+    const url = `https://wa.me/${numero}?text=${encodeURIComponent(lines.join('\n'))}`;
+    if(win) win.location.href = url; else window.location.href = url;
 
     Object.keys(cart).forEach(k => delete cart[k]);
-    document.getElementById('shop-name').value = '';
-    document.getElementById('shop-loc').value = '';
+    ['shop-name', 'shop-cuit', 'shop-dir', 'shop-vend'].forEach(id => { document.getElementById(id).value = ''; });
     await loadProducts();
     renderFilters(); renderGrid(); renderCart(); closeCart();
+  }
+
+  async function loadConfig(){
+    const { data } = await sb.rpc('tienda_config_publica');
+    if(data) config = { recargo: Number(data.recargo_particular_pct), minimo: Number(data.minimo_particular) };
+  }
+
+  async function loadVendedores(){
+    const { data } = await sb.rpc('tienda_vendedores');
+    vendedores = data || [];
+    const sel = document.getElementById('shop-vend');
+    sel.innerHTML = '<option value="">Sin preferencia (te atiende DIARNEC)</option>' +
+      vendedores.map(v => `<option value="${v.id}">${esc(v.nombre)}</option>`).join('');
+    document.getElementById('vend-wrap').style.display = vendedores.length ? '' : 'none';
   }
 
   async function loadProducts(){
@@ -310,10 +412,12 @@
 
   // Los <button onclick="..."> del HTML necesitan estas funciones como globales
   // (un <script type="module"> no las expone en window por defecto).
-  Object.assign(window, { setCat, setSort, addToCart, changeQty, openCart, closeCart, checkout, imgFallback });
+  Object.assign(window, { setCat, setSort, setTipo, addToCart, changeQty, openCart, closeCart, checkout, imgFallback });
 
   (async function init(){
-    await loadProducts();
+    try { const t = localStorage.getItem('diarnec_tipo'); if(t === 'comercio' || t === 'particular') tipo = t; } catch(e){ /* sin storage */ }
+    await Promise.all([loadProducts(), loadConfig(), loadVendedores()]);
+    renderTipo();
     renderFilters();
     renderGrid();
     renderCart();
