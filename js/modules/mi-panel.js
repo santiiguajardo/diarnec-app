@@ -134,9 +134,11 @@ function htmlMovimientos(list){
   if(list.length === 0) return '<div class="empty">No hay movimientos para mostrar.</div>';
   return list.map(m => {
     // ventas suman a lo que le corresponde pagar; devoluciones, bonificaciones y pagos lo restan
-    const suma = m.tipo === 'venta';
+    // Una venta "propia" es la que cargaste vos a un cliente tuyo: sirve para llevar tu cartera y no forma parte
+    // de tu cuenta con DIARNEC (no suma a lo que retiraste ni a tu ganancia).
+    const suma = m.tipo === 'venta' && !m.propia;
     const detalle = m.tipo === 'venta'
-      ? `Venta #${m.id}${m.cliente ? ' — ' + esc(m.cliente) : ''}`
+      ? `${m.propia ? 'Venta a tu cliente' : 'Venta'} #${m.id}${m.cliente ? ' — ' + esc(m.cliente) : ''}`
       : `${TIPO_LABEL[m.tipo]} #${m.id}${m.motivo ? ' — ' + esc(m.motivo) : ''}${m.medio ? ' (' + esc(m.medio) + ')' : ''}`;
     const items = (m.items || []).length ? `
       <table>
@@ -144,15 +146,17 @@ function htmlMovimientos(list){
         <tbody>${m.items.map(i => `<tr><td><b>${esc(i.marca || '')}</b> ${esc(i.producto)}${i.unidad ? ' <small>' + esc(i.unidad) + '</small>' : ''}</td>
           <td class="r">${Number(i.cantidad)}</td><td class="r">${money(i.precio)}</td><td class="r">${money(i.subtotal)}</td></tr>`).join('')}</tbody>
       </table>` : '';
-    const pie = m.tipo === 'venta'
-      ? `<div style="text-align:right;margin-top:6px;">Total ${money(m.bruto)} · comisión <b class="neg">${money(m.comision)}</b> · a pagar <b>${money(m.importe)}</b></div>` : '';
+    const pie = m.propia
+      ? `<div style="text-align:right;margin-top:6px;">Total ${money(m.bruto)} · <b>no afecta tu cuenta con DIARNEC</b></div>`
+      : (m.tipo === 'venta'
+        ? `<div style="text-align:right;margin-top:6px;">Total ${money(m.bruto)} · comisión <b class="neg">${money(m.comision)}</b> · a pagar <b>${money(m.importe)}</b></div>` : '');
     return `
       <details class="mov ${m.anulado ? 'anulado' : ''}">
         <summary>
           <span class="f">${dateTime(m.fecha)}</span>
-          <span><span class="tag tag-${m.tipo}">${TIPO_LABEL[m.tipo]}</span></span>
+          <span><span class="tag tag-${m.tipo}">${m.propia ? 'Venta propia' : TIPO_LABEL[m.tipo]}</span></span>
           <span>${detalle}${m.anulado ? ' <small>[anulado]</small>' : ''}</span>
-          <span class="imp ${m.anulado || suma ? '' : 'mas'}">${suma ? '' : '−'}${money(m.importe)}</span>
+          <span class="imp ${m.anulado || suma || m.propia ? '' : 'mas'}" ${m.propia ? 'style="opacity:.6;"' : ''}>${suma || m.propia ? '' : '−'}${money(m.propia ? m.bruto : m.importe)}</span>
         </summary>
         <div class="mov-detalle">${items || '<span style="color:var(--muted);">Sin detalle de productos.</span>'}${pie}</div>
       </details>`;
@@ -345,6 +349,7 @@ function htmlDias(s, movs){
     const dia = porFecha[enAR(m.fecha)];
     if(!dia) continue;
     dia.movs.push(m);
+    if(m.propia) continue; // tus ventas a tus clientes se ven, pero no son parte de tu cuenta con DIARNEC
     if(m.anulado) continue; // se muestra tachado pero no suma
     const imp = num(m.importe);
     if(m.tipo === 'venta'){ dia.retirado += imp; dia.ganancia += num(m.comision); }

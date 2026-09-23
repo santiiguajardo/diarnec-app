@@ -128,7 +128,7 @@ async function cargarMovimientos(){
 
   if(tipo === 'vendedor'){
     const [v, d, b, p] = await Promise.all([
-      filtrar(sb.from('ventas').select(`id, created_at, canal, estado, total_neto, cliente_nombre, ventas_items(${ITEMS})`).eq('vendedor_id', id).in('estado', ['confirmada', 'anulada'])),
+      filtrar(sb.from('ventas').select(`id, created_at, canal, estado, total_neto, cliente_nombre, ventas_items(${ITEMS})`).eq('vendedor_id', id).neq('canal', 'vendedor').in('estado', ['confirmada', 'anulada'])),
       filtrar(sb.from('devoluciones_cab').select(`id, created_at, total, motivo, con_stock, anulado, devoluciones_items(${ITEMS})`).eq('vendedor_id', id)),
       filtrar(sb.from('bonificaciones').select(`id, created_at, monto, descripcion, anulado, bonificaciones_items(${ITEMS})`).eq('vendedor_id', id)),
       filtrar(sb.from('pagos_vendedores').select('id, created_at, monto, medio_pago, descripcion, anulado').eq('vendedor_id', id))
