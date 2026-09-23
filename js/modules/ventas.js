@@ -1,5 +1,5 @@
 import { sb } from '../shared/supabase-client.js';
-import { requireAuth } from '../shared/auth-guard.js';
+import { requireAuth, getPerfil } from '../shared/auth-guard.js';
 import { mountLayout } from '../shared/layout.js';
 import { money } from '../shared/format.js';
 import { confirmDialog } from '../shared/dialogs.js';
@@ -63,6 +63,12 @@ let comisionesMap = {}; // "vendedorId:marcaId" -> %
   `;
 
   wireBotones();
+
+  // Administrar comisiones: solo el admin. La base ya lo hace cumplir (RLS); esto además evita
+  // que el encargado vea un botón que le va a tirar error si lo toca.
+  const perfil = await getPerfil();
+  if(!perfil || perfil.rol !== 'admin') document.getElementById('btn-comisiones').remove();
+
   await cargarBase();
   await cargarSaldos();
   await abrirPedidoDesdeUrl();
