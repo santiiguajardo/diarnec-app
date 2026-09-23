@@ -54,27 +54,26 @@ function inicioMesAR(){
 }
 
 async function cargarTodo(){
-  const [{ data: gs }, { data: ventas }, { data: pagosProv }, { data: pagosVend }, { data: bonis }] = await Promise.all([
+  const [{ data: gs }, { data: pagosVend }, { data: pagosCli }, { data: pagosProv }] = await Promise.all([
     sb.from('gastos').select('id, fecha, created_at, descripcion, monto').eq('anulado', false).order('created_at', { ascending: false }),
-    sb.from('ventas').select('created_at, total_neto').eq('estado', 'confirmada'),
-    sb.from('pagos_proveedores').select('created_at, monto_neto').eq('anulado', false),
     sb.from('pagos_vendedores').select('created_at, monto').eq('anulado', false),
-    sb.from('bonificaciones').select('created_at, monto').eq('anulado', false)
+    sb.from('pagos_clientes').select('created_at, monto').eq('anulado', false),
+    sb.from('pagos_proveedores').select('created_at, monto_neto').eq('anulado', false)
   ]);
   gastos = gs || [];
 
-  // Ingresos = lo cobrado por ventas. Gastos = gastos cargados + pagos a proveedores y a vendedores + bonificaciones.
+  // Misma cuenta que el Dashboard. La plata entra cuando se REGISTRA UN PAGO (de un vendedor o de un cliente):
+  // un retiro de mercadería o una venta todavía no es un ingreso, es una deuda a cobrar.
+  // Egresos = gastos cargados + pagos a proveedores. Las bonificaciones y devoluciones son créditos, no salen de la caja.
   // "Del mes" es el mes calendario actual (hora de Argentina); el histórico es todo desde el principio.
   const desdeMes = inicioMesAR();
   const suma = (filas, campo, soloMes) => (filas || []).reduce((s, f) =>
     (!soloMes || new Date(f.created_at) >= desdeMes) ? s + Number(f[campo]) : s, 0);
 
-  const ingHist = suma(ventas, 'total_neto', false);
-  const gasHist = suma(gastos, 'monto', false) + suma(pagosProv, 'monto_neto', false)
-    + suma(pagosVend, 'monto', false) + suma(bonis, 'monto', false);
-  const ingMes = suma(ventas, 'total_neto', true);
-  const gasMes = suma(gastos, 'monto', true) + suma(pagosProv, 'monto_neto', true)
-    + suma(pagosVend, 'monto', true) + suma(bonis, 'monto', true);
+  const ingHist = suma(pagosVend, 'monto', false) + suma(pagosCli, 'monto', false);
+  const gasHist = suma(gastos, 'monto', false) + suma(pagosProv, 'monto_neto', false);
+  const ingMes = suma(pagosVend, 'monto', true) + suma(pagosCli, 'monto', true);
+  const gasMes = suma(gastos, 'monto', true) + suma(pagosProv, 'monto_neto', true);
 
   const pintar = (id, valor, conColor) => {
     const el = document.getElementById(id);
