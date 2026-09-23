@@ -8,18 +8,22 @@
 //       nombre con tolerancia a errores de lectura) y la cantidad. Devuelve una PROPUESTA: la pantalla
 //       de ingreso la muestra para que se revise antes de tocar el stock.
 
+// Cada librería lleva su "huella digital" (SHA-384): si el archivo de internet no coincide exactamente con el
+// que se probó, el navegador (o la verificación de abajo) lo rechaza y no se ejecuta.
 const CDN = {
-  tesseract: 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js',
-  pdfjs: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
-  pdfWorker: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
+  tesseract: { url: 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js', sri: 'sha384-GJqSu7vueQ9qN0E9yLPb3Wtpd7OrgK8KmYzC8T1IysG1bcvxvIO4qtYR/D3A991F' },
+  pdfjs: { url: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js', sri: 'sha384-/1qUCSGwTur9vjf/z9lmu/eCUYbpOTgSjmpbMQZ1/CtX2v/WcAIKqRv+U1DUCG6e' },
+  pdfWorker: { url: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js', sri: 'sha384-SnzOobpRMLXZ52iJvZm/C0fYw0OQemTXzTjIsdsfMcrCtCEe9qgzxTd3RSklO5x2' }
 };
 
 const cargas = {};
-function cargarScript(src){
+function cargarScript({ url: src, sri }){
   if(!cargas[src]){
     cargas[src] = new Promise((resolve, reject) => {
       const s = document.createElement('script');
       s.src = src;
+      s.integrity = sri;
+      s.crossOrigin = 'anonymous';
       s.onload = resolve;
       s.onerror = () => { delete cargas[src]; reject(new Error('No se pudo descargar el lector de remitos. Revisá tu conexión a internet.')); };
       document.head.appendChild(s);
@@ -106,8 +110,11 @@ async function leerPdf(file, onProgreso){
   const pdfjs = window.pdfjsLib;
   if(!pdfjs.GlobalWorkerOptions.workerSrc){
     // El worker se baja como texto y se sirve como blob: así no depende de que el CDN permita cargarlo como worker
-    const codigo = await (await fetch(CDN.pdfWorker)).text();
-    pdfjs.GlobalWorkerOptions.workerSrc = URL.createObjectURL(new Blob([codigo], { type: 'text/javascript' }));
+    // Se baja como archivo y se verifica su huella antes de usarlo como worker
+    const bytes = await (await fetch(CDN.pdfWorker.url)).arrayBuffer();
+    const huella = btoa(String.fromCharCode(...new Uint8Array(await crypto.subtle.digest('SHA-384', bytes))));
+    if('sha384-' + huella !== CDN.pdfWorker.sri) throw new Error('El lector de PDF descargado no es el esperado; por seguridad no se usa.');
+    pdfjs.GlobalWorkerOptions.workerSrc = URL.createObjectURL(new Blob([bytes], { type: 'text/javascript' }));
   }
   const pdf = await pdfjs.getDocument({ data: await file.arrayBuffer() }).promise;
   const lineas = [];
