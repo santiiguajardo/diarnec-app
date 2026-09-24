@@ -1,6 +1,6 @@
 import { sb } from '../shared/supabase-client.js';
 import { requireAuth, getPerfil } from '../shared/auth-guard.js';
-import { mountLayout } from '../shared/layout.js';
+import { mountLayout, refrescarAvisoPedidos } from '../shared/layout.js';
 import { money, dateTime } from '../shared/format.js';
 import { confirmDialog } from '../shared/dialogs.js';
 import { createProductPicker } from '../shared/product-picker.js';
@@ -88,6 +88,7 @@ async function cargarPedidos(){
     return;
   }
   pedidos = data || [];
+  refrescarAvisoPedidos();
   if(pedidos.length === 0){
     list.innerHTML = `<div class="empty-row">Todavía no hay pedidos desde la tienda online.</div>`;
     return;
