@@ -13,6 +13,7 @@ on:
       - 'css/**'
       - 'img/**'
       - 'tiendaonline/index.html'
+      - '.github/workflows/deploy-pages.yml'
   workflow_dispatch:
 
 permissions:
@@ -37,11 +38,12 @@ jobs:
       - name: Copiar el panel y la tienda a gh-pages (sin tocar el index.html de la tienda)
         run: |
           mkdir -p _pages/admin _pages/css _pages/img _pages/js/shared _pages/js/modules
-          cp -r admin/. _pages/admin/
-          cp -r css/. _pages/css/
-          cp -r img/. _pages/img/
-          cp -r js/shared/. _pages/js/shared/
-          cp -r js/modules/. _pages/js/modules/
+          # rsync --delete: si un archivo se borra en main, también se borra de la web publicada
+          rsync -a --delete admin/ _pages/admin/
+          rsync -a --delete css/ _pages/css/
+          rsync -a --delete img/ _pages/img/
+          rsync -a --delete js/shared/ _pages/js/shared/
+          rsync -a --delete js/modules/ _pages/js/modules/
           if [ -f tiendaonline/index.html ]; then cp tiendaonline/index.html _pages/index.html; fi
 
       - name: Publicar si hay cambios
