@@ -19,6 +19,57 @@ const MODULES = [
   { key: 'usuarios', label: 'Usuarios', href: 'usuarios.html', color: '#7f8c8d', roles: ['admin'] },
 ];
 
+// ===== Aviso de pedidos nuevos de la tienda online =====
+// Cada minuto (y al volver a la pestaña) se cuentan los pedidos pendientes: se muestran en un globito junto a
+// "Tienda online", en el título de la pestaña, y si llega uno nuevo mientras el panel está abierto sale un cartel.
+
+let pendientes = null;
+let tituloBase = null;
+
+export async function refrescarAvisoPedidos(){
+  const { count, error } = await sb.from('ventas').select('id', { count: 'exact', head: true })
+    .eq('canal', 'online').eq('estado', 'pendiente');
+  if(error || count === null) return;
+  const anterior = pendientes;
+  pendientes = count;
+
+  const link = document.querySelector('.admin-sidebar a[href="tienda-online.html"]');
+  if(link){
+    let b = link.querySelector('.badge-pedidos');
+    if(count > 0){
+      if(!b){ b = document.createElement('span'); b.className = 'badge-pedidos'; link.appendChild(b); }
+      b.textContent = count;
+      b.title = count === 1 ? '1 pedido esperando' : `${count} pedidos esperando`;
+    } else if(b){
+      b.remove();
+    }
+  }
+  if(tituloBase === null) tituloBase = document.title;
+  document.title = count > 0 ? `(${count}) ${tituloBase}` : tituloBase;
+
+  if(anterior !== null && count > anterior){
+    avisoCartel(count - anterior === 1 ? '🛒 Llegó un pedido nuevo de la tienda' : `🛒 Llegaron ${count - anterior} pedidos nuevos de la tienda`);
+  }
+}
+
+function avisoCartel(texto){
+  document.querySelectorAll('a[data-cartel-pedido]').forEach(x => x.remove());
+  const t = document.createElement('a');
+  t.dataset.cartelPedido = '1';
+  t.href = 'tienda-online.html';
+  t.textContent = texto;
+  t.style.cssText = 'position:fixed;top:16px;right:16px;z-index:9999;background:#FF8A3D;color:#fff;padding:14px 20px;border-radius:12px;'
+    + 'font-weight:700;font-size:14px;text-decoration:none;box-shadow:0 10px 30px rgba(0,0,0,.25);cursor:pointer;';
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 9000);
+}
+
+function iniciarAvisoPedidos(){
+  refrescarAvisoPedidos();
+  setInterval(refrescarAvisoPedidos, 60000);
+  document.addEventListener('visibilitychange', () => { if(!document.hidden) refrescarAvisoPedidos(); });
+}
+
 // Inserta el sidebar+topbar en <div id="app-shell"></div> y devuelve el contenedor
 // #admin-content donde cada página arma su propio contenido.
 export async function mountLayout(activeKey, pageTitle){
@@ -54,6 +105,7 @@ export async function mountLayout(activeKey, pageTitle){
   `;
 
   document.getElementById('logout-btn').addEventListener('click', logout);
+  if(modulos.some(m => m.key === 'tienda')) iniciarAvisoPedidos();
   // Asistente (chat) disponible en todo el panel de gestión; si falla no rompe la página
   import('./asistente.js').then(m => m.montarAsistente()).catch(e => console.warn('Asistente no disponible:', e));
   return document.getElementById('admin-content');

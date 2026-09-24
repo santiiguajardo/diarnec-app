@@ -1,4 +1,5 @@
 import { sb } from './supabase-client.js';
+import './pwa.js'; // app instalable en el celular
 
 // Anti-clickjacking: el panel no se muestra dentro de un marco de otra página (GitHub Pages no permite
 // mandar la cabecera X-Frame-Options, así que se corta acá).
