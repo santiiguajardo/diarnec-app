@@ -54,17 +54,11 @@ const TIPO_LABEL = { comercio: 'Comercio', particular: 'Particular' };
     </div>
 
     <div class="admin-section">
-      <h3>Marcas y logos</h3>
+      <h3>Logos de las marcas</h3>
       <p style="color:var(--muted);font-size:13px;margin-bottom:12px;">
-        Acá podés agregar marcas, cambiarles el nombre o eliminarlas. Si pegás la dirección (URL) de la imagen del logo, se muestra abajo de todo en la tienda,
-        en una franja que se va desplazando sola. Las marcas sin logo no aparecen en la franja. Una marca solo se puede eliminar si no tiene productos.
+        Pegá la dirección (URL) de la imagen del logo de cada marca. Los logos cargados se muestran abajo de todo en la tienda,
+        en una franja que se va desplazando sola. Las marcas sin logo no aparecen. El cambio se ve al instante.
       </p>
-      <div class="cfg-row mk-nueva">
-        <label>Marca nueva <input type="text" id="mk-nuevo-nombre" maxlength="80" placeholder="Nombre de la marca"></label>
-        <label>Logo (opcional) <input type="text" id="mk-nuevo-url" placeholder="https://... (URL del logo)"></label>
-        <button class="btn-sm btn-add" id="mk-nuevo-add">+ Agregar marca</button>
-        <span id="mk-nuevo-msg" class="cfg-msg"></span>
-      </div>
       <div class="logos-list" id="logos-list"></div>
     </div>
   `;
@@ -173,127 +167,54 @@ async function iniciarConfig(){
   });
 }
 
-// ===== Marcas y logos: agregar, cambiar nombre, cargar el logo y eliminar =====
-
-let marcasLista = [];
-
-function filaMarca(m){
-  return `
-    <div class="logo-row" data-id="${m.id}">
-      <div class="logo-prev">${m.logo_url ? `<img src="${esc(m.logo_url)}" alt="">` : '<span>Sin logo</span>'}</div>
-      <input type="text" class="logo-nombre" maxlength="80" value="${esc(m.nombre)}" placeholder="Nombre de la marca" aria-label="Nombre de la marca">
-      <input type="text" class="logo-url" placeholder="https://... (URL del logo)" value="${esc(m.logo_url || '')}" aria-label="URL del logo">
-      <button class="btn-sm btn-add" data-logo="guardar">Guardar</button>
-      <button class="btn-sm" data-logo="quitar" ${m.logo_url ? '' : 'disabled'}>Quitar logo</button>
-      <button class="btn-sm btn-del" data-logo="eliminar">Eliminar marca</button>
-      <span class="logo-msg cfg-msg"></span>
-    </div>`;
-}
-
-function ponerPreview(row, url){
-  const prev = row.querySelector('.logo-prev');
-  prev.innerHTML = url ? '<img alt="">' : '<span>Sin logo</span>';
-  if(url){
-    const img = prev.querySelector('img');
-    img.onerror = () => { prev.innerHTML = '<span>No se pudo cargar</span>'; };
-    img.src = url;
-  }
-}
-
-function msgFila(row, ok, texto){
-  const msg = row.querySelector('.logo-msg');
-  msg.className = 'logo-msg cfg-msg ' + (ok ? 'ok' : 'err');
-  msg.textContent = texto;
-}
-
-// Devuelve el texto de error si la dirección no sirve, o '' si está bien (o vacía)
-function errorDeLogo(url){
-  if(!url) return '';
-  if(!/^https?:\/\//i.test(url)) return 'La dirección del logo tiene que empezar con http:// o https://';
-  if(url.length > 500) return 'La dirección del logo es demasiado larga.';
-  return '';
-}
-
-function textoErrorMarca(error, nombre){
-  return error.code === '23505' ? `Ya existe una marca llamada "${nombre}".` : 'No se pudo guardar: ' + error.message;
-}
-
 async function iniciarLogos(){
   const cont = document.getElementById('logos-list');
   const { data, error } = await sb.from('marcas').select('id, nombre, logo_url').order('nombre');
   if(error){ cont.textContent = 'No se pudieron cargar las marcas: ' + error.message; return; }
-  marcasLista = data || [];
-  const pintar = () => {
-    cont.innerHTML = marcasLista.length ? marcasLista.map(filaMarca).join('') : '<p style="color:var(--muted);font-size:13px;">Todavía no hay marcas cargadas.</p>';
-  };
-  pintar();
+  const marcas = data || [];
+  if(!marcas.length){ cont.textContent = 'Todavía no hay marcas cargadas.'; return; }
+  cont.innerHTML = marcas.map(m => `
+    <div class="logo-row" data-id="${m.id}">
+      <div class="logo-prev">${m.logo_url ? `<img src="${esc(m.logo_url)}" alt="">` : '<span>Sin logo</span>'}</div>
+      <div class="logo-nom">${esc(m.nombre)}</div>
+      <input type="text" class="logo-url" placeholder="https://... (URL de la imagen)" value="${esc(m.logo_url || '')}" data-orig="${esc(m.logo_url || '')}">
+      <button class="btn-sm btn-add" data-logo="guardar">Guardar</button>
+      <button class="btn-sm btn-del" data-logo="quitar" ${m.logo_url ? '' : 'disabled'}>Quitar</button>
+      <span class="logo-msg cfg-msg"></span>
+    </div>`).join('');
 
-  // --- agregar marca nueva ---
-  const nuevoNombre = document.getElementById('mk-nuevo-nombre');
-  const nuevoUrl = document.getElementById('mk-nuevo-url');
-  const nuevoMsg = document.getElementById('mk-nuevo-msg');
-  const agregar = async () => {
-    const nombre = nuevoNombre.value.trim();
-    const url = nuevoUrl.value.trim();
-    nuevoMsg.className = 'cfg-msg err';
-    if(!nombre){ nuevoMsg.textContent = 'Escribí el nombre de la marca.'; return; }
-    const eUrl = errorDeLogo(url);
-    if(eUrl){ nuevoMsg.textContent = eUrl; return; }
-    const { data: creada, error } = await sb.from('marcas').insert({ nombre, logo_url: url || null }).select('id, nombre, logo_url').single();
-    if(error){ nuevoMsg.textContent = textoErrorMarca(error, nombre); return; }
-    marcasLista.push(creada);
-    marcasLista.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
-    nuevoNombre.value = ''; nuevoUrl.value = '';
-    nuevoMsg.className = 'cfg-msg ok';
-    nuevoMsg.textContent = `Marca "${creada.nombre}" agregada.`;
-    pintar();
+  const marcarPrev = (row, url) => {
+    const prev = row.querySelector('.logo-prev');
+    prev.innerHTML = url ? '<img alt="">' : '<span>Sin logo</span>';
+    if(url){
+      const img = prev.querySelector('img');
+      img.onerror = () => { prev.innerHTML = '<span>No se pudo cargar</span>'; };
+      img.src = url;
+    }
   };
-  document.getElementById('mk-nuevo-add').addEventListener('click', agregar);
-  [nuevoNombre, nuevoUrl].forEach(i => i.addEventListener('keydown', e => { if(e.key === 'Enter') agregar(); }));
-
-  // --- editar / quitar logo / eliminar ---
   cont.addEventListener('input', e => {
-    if(e.target.classList.contains('logo-url')) ponerPreview(e.target.closest('.logo-row'), e.target.value.trim());
+    if(e.target.classList.contains('logo-url')) marcarPrev(e.target.closest('.logo-row'), e.target.value.trim());
   });
   cont.addEventListener('click', async e => {
     const btn = e.target.closest('button[data-logo]');
     if(!btn) return;
     const row = btn.closest('.logo-row');
-    const id = Number(row.dataset.id);
-    const m = marcasLista.find(x => x.id === id);
-    const inNombre = row.querySelector('.logo-nombre');
-    const inUrl = row.querySelector('.logo-url');
-    const accion = btn.dataset.logo;
-
-    if(accion === 'eliminar'){
-      const { count } = await sb.from('productos').select('id', { count: 'exact', head: true }).eq('marca_id', id);
-      if(count > 0){
-        msgFila(row, false, `No se puede eliminar "${m.nombre}": tiene ${count} producto${count === 1 ? '' : 's'}. Cambiales la marca (o eliminalos) primero.`);
-        return;
-      }
-      if(!(await confirmDialog(`¿Eliminar la marca "${m.nombre}"?\nTambién se borran las comisiones cargadas para esta marca.`, { confirmLabel: 'Eliminar' }))) return;
-      const { error } = await sb.from('marcas').delete().eq('id', id);
-      if(error){ msgFila(row, false, 'No se pudo eliminar: ' + error.message); return; }
-      marcasLista = marcasLista.filter(x => x.id !== id);
-      pintar();
-      return;
-    }
-
-    if(accion === 'quitar') inUrl.value = '';
-    const nombre = inNombre.value.trim();
-    const url = inUrl.value.trim();
-    if(!nombre){ msgFila(row, false, 'El nombre no puede quedar vacío.'); return; }
-    const eUrl = errorDeLogo(url);
-    if(eUrl){ msgFila(row, false, eUrl); return; }
+    const input = row.querySelector('.logo-url');
+    const msg = row.querySelector('.logo-msg');
+    const quitar = btn.dataset.logo === 'quitar';
+    if(quitar) input.value = '';
+    const url = input.value.trim();
+    if(url && !/^https?:\/\//i.test(url)){ msg.className = 'logo-msg cfg-msg err'; msg.textContent = 'La dirección tiene que empezar con http:// o https://'; return; }
+    if(url.length > 500){ msg.className = 'logo-msg cfg-msg err'; msg.textContent = 'La dirección es demasiado larga.'; return; }
     btn.disabled = true;
-    const { error } = await sb.from('marcas').update({ nombre, logo_url: url || null }).eq('id', id);
+    const { error } = await sb.from('marcas').update({ logo_url: url || null }).eq('id', Number(row.dataset.id));
     btn.disabled = false;
-    if(error){ msgFila(row, false, textoErrorMarca(error, nombre)); return; }
-    m.nombre = nombre; m.logo_url = url || null;
-    inNombre.value = nombre;
-    ponerPreview(row, url);
+    if(error){ msg.className = 'logo-msg cfg-msg err'; msg.textContent = 'No se pudo guardar: ' + error.message; return; }
+    input.dataset.orig = url;
+    marcarPrev(row, url);
     row.querySelector('[data-logo="quitar"]').disabled = !url;
-    msgFila(row, true, accion === 'quitar' ? 'Logo quitado.' : (url ? 'Guardado. Ya se ve en la tienda.' : 'Guardado.'));
+    msg.className = 'logo-msg cfg-msg ok';
+    msg.textContent = url ? 'Guardado. Ya se ve en la tienda.' : 'Logo quitado.';
   });
 }
 
