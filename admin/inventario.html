@@ -162,11 +162,14 @@
 
 <div class="modal-overlay" id="modal-imagen">
   <div class="modal-box">
-    <h3>Foto del producto</h3>
+    <h3>Foto y descripción</h3>
     <p id="imagen-producto-nombre"></p>
     <label>URL de la imagen</label>
     <input type="text" id="imagen-url" placeholder="https://...">
     <div class="modal-imagen-preview" id="imagen-preview">Sin imagen</div>
+    <label style="margin-top:12px;display:block;">Descripción (se ve en la tienda online)</label>
+    <textarea id="imagen-desc" rows="2" maxlength="200" placeholder="Ej: La horma trae aproximadamente 5 kg" style="width:100%;resize:vertical;font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;"></textarea>
+    <div id="imagen-desc-cuenta" style="font-size:11px;color:var(--muted);text-align:right;">0 / 200</div>
     <div class="modal-actions">
       <button class="modal-cancel" id="imagen-cancel">Cancelar</button>
       <button class="modal-confirm" id="imagen-guardar">Guardar</button>
