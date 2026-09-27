@@ -2,13 +2,16 @@
 // no se muestran y la llamada devuelve false o tira una excepción en silencio, dejando
 // botones que "no hacen nada". Estos modales corren siempre igual, en cualquier navegador.
 
+// Los textos llevan datos cargados por personas (nombres, descripciones): se escapan para que nunca se interpreten como HTML.
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
 export function confirmDialog(message, { confirmLabel = 'Confirmar', cancelLabel = 'Cancelar' } = {}){
   return new Promise(resolve => {
     const overlay = document.createElement('div');
     overlay.className = 'app-confirm-overlay';
     overlay.innerHTML = `
       <div class="app-confirm-box">
-        <p>${message}</p>
+        <p>${esc(message)}</p>
         <div class="app-confirm-actions">
           <button class="app-confirm-cancel">${cancelLabel}</button>
           <button class="app-confirm-ok">${confirmLabel}</button>
@@ -33,8 +36,8 @@ export function promptDialog(message, defaultValue = '', { password = false } = 
     overlay.className = 'app-confirm-overlay';
     overlay.innerHTML = `
       <div class="app-confirm-box">
-        <p>${message}</p>
-        <input type="${password ? 'password' : 'text'}" class="app-prompt-input" value="${defaultValue}" ${password ? 'autocomplete="new-password"' : ''}>
+        <p>${esc(message)}</p>
+        <input type="${password ? 'password' : 'text'}" class="app-prompt-input" value="${esc(defaultValue)}" ${password ? 'autocomplete="new-password"' : ''}>
         <div class="app-confirm-actions">
           <button class="app-confirm-cancel">Cancelar</button>
           <button class="app-confirm-ok">Aceptar</button>
