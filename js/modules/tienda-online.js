@@ -49,6 +49,15 @@ const TIPO_LABEL = { comercio: 'Comercio', particular: 'Particular' };
     </div>
 
     <div class="admin-section">
+      <h3>Logos de las marcas</h3>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:12px;">
+        Pegá la dirección (URL) de la imagen del logo de cada marca. Los logos cargados se muestran abajo de todo en la tienda,
+        en una franja que se va desplazando sola. Las marcas sin logo no aparecen. El cambio se ve al instante.
+      </p>
+      <div class="logos-list" id="logos-list"></div>
+    </div>
+
+    <div class="admin-section">
       <h3>Pedidos online</h3>
       <div class="pedidos-list" id="pedidos-list"></div>
     </div>
@@ -61,6 +70,7 @@ const TIPO_LABEL = { comercio: 'Comercio', particular: 'Particular' };
 
   const perfil = await getPerfil();
   if(perfil && perfil.rol === 'admin') await iniciarConfig();
+  await iniciarLogos();
 
   const { data: vend } = await sb.from('vendedores').select('id, nombre');
   vendedoresMap = Object.fromEntries((vend || []).map(v => [v.id, v.nombre]));
@@ -154,6 +164,57 @@ async function iniciarConfig(){
     const { error } = await sb.rpc('guardar_config_tienda', { p_recargo: recargo, p_minimo: minimo });
     msg.className = 'cfg-msg ' + (error ? 'err' : 'ok');
     msg.textContent = error ? error.message : 'Guardado. Ya se aplica en la tienda.';
+  });
+}
+
+async function iniciarLogos(){
+  const cont = document.getElementById('logos-list');
+  const { data, error } = await sb.from('marcas').select('id, nombre, logo_url').order('nombre');
+  if(error){ cont.textContent = 'No se pudieron cargar las marcas: ' + error.message; return; }
+  const marcas = data || [];
+  if(!marcas.length){ cont.textContent = 'Todavía no hay marcas cargadas.'; return; }
+  cont.innerHTML = marcas.map(m => `
+    <div class="logo-row" data-id="${m.id}">
+      <div class="logo-prev">${m.logo_url ? `<img src="${esc(m.logo_url)}" alt="">` : '<span>Sin logo</span>'}</div>
+      <div class="logo-nom">${esc(m.nombre)}</div>
+      <input type="text" class="logo-url" placeholder="https://... (URL de la imagen)" value="${esc(m.logo_url || '')}" data-orig="${esc(m.logo_url || '')}">
+      <button class="btn-sm btn-add" data-logo="guardar">Guardar</button>
+      <button class="btn-sm btn-del" data-logo="quitar" ${m.logo_url ? '' : 'disabled'}>Quitar</button>
+      <span class="logo-msg cfg-msg"></span>
+    </div>`).join('');
+
+  const marcarPrev = (row, url) => {
+    const prev = row.querySelector('.logo-prev');
+    prev.innerHTML = url ? '<img alt="">' : '<span>Sin logo</span>';
+    if(url){
+      const img = prev.querySelector('img');
+      img.onerror = () => { prev.innerHTML = '<span>No se pudo cargar</span>'; };
+      img.src = url;
+    }
+  };
+  cont.addEventListener('input', e => {
+    if(e.target.classList.contains('logo-url')) marcarPrev(e.target.closest('.logo-row'), e.target.value.trim());
+  });
+  cont.addEventListener('click', async e => {
+    const btn = e.target.closest('button[data-logo]');
+    if(!btn) return;
+    const row = btn.closest('.logo-row');
+    const input = row.querySelector('.logo-url');
+    const msg = row.querySelector('.logo-msg');
+    const quitar = btn.dataset.logo === 'quitar';
+    if(quitar) input.value = '';
+    const url = input.value.trim();
+    if(url && !/^https?:\/\//i.test(url)){ msg.className = 'logo-msg cfg-msg err'; msg.textContent = 'La dirección tiene que empezar con http:// o https://'; return; }
+    if(url.length > 500){ msg.className = 'logo-msg cfg-msg err'; msg.textContent = 'La dirección es demasiado larga.'; return; }
+    btn.disabled = true;
+    const { error } = await sb.from('marcas').update({ logo_url: url || null }).eq('id', Number(row.dataset.id));
+    btn.disabled = false;
+    if(error){ msg.className = 'logo-msg cfg-msg err'; msg.textContent = 'No se pudo guardar: ' + error.message; return; }
+    input.dataset.orig = url;
+    marcarPrev(row, url);
+    row.querySelector('[data-logo="quitar"]').disabled = !url;
+    msg.className = 'logo-msg cfg-msg ok';
+    msg.textContent = url ? 'Guardado. Ya se ve en la tienda.' : 'Logo quitado.';
   });
 }
 

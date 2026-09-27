@@ -128,6 +128,21 @@
 
   .empty-row{color:var(--muted);text-align:center;padding:24px;}
 
+  .marcas-band{background:#fff;border-top:1px solid var(--line);padding:26px 0 24px;}
+  .marcas-band[hidden]{display:none;}
+  .marcas-band h2{font-family:var(--display);font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-align:center;margin:0 16px 16px;}
+  .marquee{overflow:hidden;-webkit-mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);}
+  .marquee-track{display:flex;width:max-content;animation:marquee-der var(--dur,40s) linear infinite;}
+  .marquee:hover .marquee-track{animation-play-state:paused;}
+  .marquee-group{display:flex;align-items:center;flex:none;}
+  .marquee-item{flex:none;height:64px;width:150px;margin:0 18px;display:flex;align-items:center;justify-content:center;}
+  .marquee-item img{max-width:100%;max-height:100%;object-fit:contain;}
+  /* se desplaza hacia la derecha: el carril arranca corrido a la izquierda y vuelve a 0 */
+  @keyframes marquee-der{from{transform:translateX(-50%);}to{transform:translateX(0);}}
+  @media (prefers-reduced-motion:reduce){
+    .marquee-track{animation:none;width:auto;flex-wrap:wrap;justify-content:center;}
+    .marquee-group[aria-hidden="true"]{display:none;}
+  }
   footer{background:var(--navy);color:#8FA6B8;text-align:center;padding:24px 20px;font-size:13px;}
   footer b{color:#fff;font-family:var(--display);}
 
@@ -184,6 +199,11 @@
   <div class="filters" id="filters"></div>
   <main><div class="grid" id="grid"></div></main>
 </div>
+
+<section class="marcas-band" id="marcas-band" hidden aria-label="Marcas con las que trabajamos">
+  <h2>Marcas con las que trabajamos</h2>
+  <div class="marquee"><div class="marquee-track" id="marquee-track"></div></div>
+</section>
 
 <footer>
   <div><b>DIARNEC</b> — distribuidora de alimentos</div>
@@ -493,9 +513,38 @@
     }));
   }
 
+  // Franja de logos de marcas: solo las que tienen logo cargado (Panel → Tienda online → Logos de las marcas).
+  async function loadMarcas(){
+    const { data, error } = await sb.from('marcas').select('nombre, logo_url').not('logo_url', 'is', null).order('nombre');
+    if(error){ console.error('Error cargando marcas:', error); return; }
+    renderMarcas((data || []).filter(m => /^https?:\/\//i.test(m.logo_url || '')));
+  }
+
+  function renderMarcas(list){
+    const band = document.getElementById('marcas-band');
+    const track = document.getElementById('marquee-track');
+    if(!list.length){ band.hidden = true; return; }
+    const item = m => `<div class="marquee-item"><img src="${esc(m.logo_url)}" alt="${esc(m.nombre)}" title="${esc(m.nombre)}" loading="lazy" onerror="quitarLogo(this.src)"></div>`;
+    const conjunto = list.map(item).join('');
+    band.hidden = false;
+    // Se repite el conjunto hasta cubrir el ancho de la pantalla, y se duplica el grupo para que el giro no tenga saltos.
+    const ancho = list.length * 186;
+    const veces = Math.max(1, Math.ceil((window.innerWidth * 1.2) / ancho));
+    const grupo = conjunto.repeat(veces);
+    track.innerHTML = `<div class="marquee-group">${grupo}</div><div class="marquee-group" aria-hidden="true">${grupo}</div>`;
+    // velocidad constante (~45 px/s) sin importar cuántos logos haya
+    track.style.setProperty('--dur', Math.max(15, Math.round((ancho * veces) / 45)) + 's');
+  }
+
+  // Un logo que no carga se saca de todos los grupos a la vez (así los dos grupos siguen midiendo lo mismo y el giro no salta).
+  function quitarLogo(src){
+    document.querySelectorAll('#marquee-track .marquee-item').forEach(el => { const i = el.querySelector('img'); if(i && i.src === src) el.remove(); });
+    if(!document.querySelector('#marquee-track .marquee-item')) document.getElementById('marcas-band').hidden = true;
+  }
+
   // Los <button onclick="..."> del HTML necesitan estas funciones como globales
   // (un <script type="module"> no las expone en window por defecto).
-  Object.assign(window, { setCat, setSort, setView, setTipo, addToCart, changeQty, openCart, closeCart, checkout, imgFallback });
+  Object.assign(window, { setCat, setSort, setView, setTipo, addToCart, changeQty, openCart, closeCart, checkout, imgFallback, quitarLogo });
 
   // Las categorías quedan fijas debajo del encabezado al scrollear; el alto del encabezado varía (se acomoda en celular).
   function ajustarEncabezado(){
@@ -513,6 +562,7 @@
     renderFilters();
     renderGrid();
     renderCart();
+    loadMarcas();
   })();
 </script>
 
