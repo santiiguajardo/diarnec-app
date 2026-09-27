@@ -49,17 +49,17 @@ const TIPO_LABEL = { comercio: 'Comercio', particular: 'Particular' };
     </div>
 
     <div class="admin-section">
+      <h3>Pedidos online</h3>
+      <div class="pedidos-list" id="pedidos-list"></div>
+    </div>
+
+    <div class="admin-section">
       <h3>Logos de las marcas</h3>
       <p style="color:var(--muted);font-size:13px;margin-bottom:12px;">
         Pegá la dirección (URL) de la imagen del logo de cada marca. Los logos cargados se muestran abajo de todo en la tienda,
         en una franja que se va desplazando sola. Las marcas sin logo no aparecen. El cambio se ve al instante.
       </p>
       <div class="logos-list" id="logos-list"></div>
-    </div>
-
-    <div class="admin-section">
-      <h3>Pedidos online</h3>
-      <div class="pedidos-list" id="pedidos-list"></div>
     </div>
   `;
 
