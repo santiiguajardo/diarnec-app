@@ -176,6 +176,7 @@ async function deshacer(){
   document.getElementById('imagen-cancel').addEventListener('click', () => toggleModal('modal-imagen', false));
   document.getElementById('imagen-guardar').addEventListener('click', guardarImagen);
   document.getElementById('imagen-url').addEventListener('input', actualizarPreviewImagen);
+  document.getElementById('imagen-desc').addEventListener('input', actualizarCuentaDesc);
   document.getElementById('prod-cancel').addEventListener('click', () => toggleModal('modal-producto', false));
   document.getElementById('prod-guardar').addEventListener('click', guardarProducto);
   document.getElementById('btn-deshacer').addEventListener('click', deshacer);
@@ -201,7 +202,7 @@ async function cargarTodo(){
   const [{ data: mk }, { data: cat }, { data: prod }, { data: prv }] = await Promise.all([
     sb.from('marcas').select('id, nombre, color, proveedor_id').order('nombre'),
     sb.from('categorias').select('id, nombre, color, por_peso').order('nombre'),
-    sb.from('productos').select('id, marca_id, categoria_id, nombre, unidad, sku, precio_compra, precio_venta, stock_actual, stock_minimo, activo, imagen_url, marcas(nombre, color), categorias(nombre, por_peso)').order('nombre'),
+    sb.from('productos').select('id, marca_id, categoria_id, nombre, unidad, sku, precio_compra, precio_venta, stock_actual, stock_minimo, activo, imagen_url, descripcion, marcas(nombre, color), categorias(nombre, por_peso)').order('nombre'),
     sb.from('proveedores').select('id, nombre, activo').order('nombre')
   ]);
   proveedores = prv || [];
@@ -446,7 +447,7 @@ function renderTabla(){
     return `
       <tr style="${rowStyle}">
         <td>
-          <button class="thumb-btn" onclick="window.invImagen(${p.id})" title="Cambiar foto">
+          <button class="thumb-btn" onclick="window.invImagen(${p.id})" title="Foto y descripción${p.descripcion ? ': ' + esc(p.descripcion) : ''}">
             ${p.imagen_url ? `<img src="${p.imagen_url}" alt="">` : '📷'}
           </button>
         </td>
@@ -624,8 +625,14 @@ function invImagen(id){
   imagenProductoId = id;
   document.getElementById('imagen-producto-nombre').textContent = p.nombre;
   document.getElementById('imagen-url').value = p.imagen_url || '';
+  document.getElementById('imagen-desc').value = p.descripcion || '';
+  actualizarCuentaDesc();
   actualizarPreviewImagen();
   toggleModal('modal-imagen', true);
+}
+
+function actualizarCuentaDesc(){
+  document.getElementById('imagen-desc-cuenta').textContent = document.getElementById('imagen-desc').value.length + ' / 200';
 }
 
 function actualizarPreviewImagen(){
@@ -638,12 +645,14 @@ async function guardarImagen(){
   if(!imagenProductoId) return;
   const p = productos.find(p => p.id === imagenProductoId);
   const antes = p ? p.imagen_url : '';
+  const antesDesc = p ? (p.descripcion || null) : null;
   const imagen_url = document.getElementById('imagen-url').value.trim();
-  const { error } = await sb.from('productos').update({ imagen_url }).eq('id', imagenProductoId);
+  const descripcion = document.getElementById('imagen-desc').value.trim() || null;
+  const { error } = await sb.from('productos').update({ imagen_url, descripcion }).eq('id', imagenProductoId);
   if(error){ alert('No se pudo guardar: ' + error.message); return; }
   const id = imagenProductoId;
-  apilar(`se cambio la foto de "${p ? p.nombre : id}"`, async () => {
-    const { error } = await sb.from('productos').update({ imagen_url: antes }).eq('id', id);
+  apilar(`se cambio la foto/descripcion de "${p ? p.nombre : id}"`, async () => {
+    const { error } = await sb.from('productos').update({ imagen_url: antes, descripcion: antesDesc }).eq('id', id);
     return error ? error.message : null;
   });
   toggleModal('modal-imagen', false);

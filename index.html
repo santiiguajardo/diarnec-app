@@ -81,6 +81,9 @@
   @media (max-width:480px){ .toolbar{justify-content:stretch;} .toolbar label{width:100%;} .toolbar select{flex:1;} }
   .card .name{font-family:var(--display);font-weight:700;font-size:14px;color:var(--navy);}
   .card .unit{font-size:12px;color:var(--muted);}
+  .card .desc,.item-row .desc{font-size:12px;line-height:1.35;color:var(--navy);background:#F1F5F9;border-left:3px solid var(--green,#2BB673);border-radius:0 6px 6px 0;padding:4px 8px;margin-top:4px;}
+  .card .desc{margin-top:0;}
+  .card > .add-btn,.card > .stepper{margin-top:auto;}
   .price{font-family:var(--display);font-weight:700;font-size:15px;}
   .price{display:flex;justify-content:space-between;align-items:baseline;gap:8px;}
   .price2{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-family:var(--display);font-weight:500;font-size:12.5px;color:var(--muted);margin-top:-6px;}
@@ -289,7 +292,7 @@
         ${p.image
           ? `<img class="rthumb" src="${esc(p.image)}" alt="${esc(p.name)}" data-color="${esc(p.color)}" data-cat="${esc(p.cat)}" onerror="imgFallback(this)">`
           : `<div class="rthumb" style="background:${esc(p.color)}">${esc(p.cat)}</div>`}
-        <div><div class="name">${esc(p.name)}</div><div class="unit">${esc(p.brand)}${p.unit ? ' · ' + esc(p.unit) : ''}</div></div>
+        <div><div class="name">${esc(p.name)}</div><div class="unit">${esc(p.brand)}${p.unit ? ' · ' + esc(p.unit) : ''}</div>${p.desc ? `<div class="desc">${esc(p.desc)}</div>` : ''}</div>
         <div class="prices">${precios}</div>
         <div class="ctrl">${control}</div>
       </div>`;
@@ -302,6 +305,7 @@
         }
         <div class="name">${esc(p.name)}</div>
         <div class="unit">${esc(p.brand)}${p.unit ? ' · ' + esc(p.unit) : ''}</div>
+        ${p.desc ? `<div class="desc">${esc(p.desc)}</div>` : ''}
         ${precios}
         ${control}
       </div>`;
@@ -472,7 +476,7 @@
   async function loadProducts(){
     const { data, error } = await sb
       .from('productos')
-      .select('id, nombre, unidad, precio_venta, imagen_url, marcas(nombre), categorias(nombre, color)')
+      .select('id, nombre, unidad, precio_venta, imagen_url, descripcion, marcas(nombre), categorias(nombre, color)')
       .eq('activo', true)
       .order('id');
     if(error){ console.error('Error cargando productos:', error); return; }
@@ -482,6 +486,7 @@
       unit: p.unidad,
       price: p.precio_venta,
       image: p.imagen_url,
+      desc: p.descripcion || '',
       brand: p.marcas ? p.marcas.nombre : '',
       cat: p.categorias ? p.categorias.nombre : '',
       color: p.categorias ? p.categorias.color : '#2BB673'
