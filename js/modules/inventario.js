@@ -470,6 +470,7 @@ function renderTabla(){
         <td class="row-btns">
           <button class="btn-sm btn-edit" onclick="window.invEditar(${p.id})">✏️ Editar</button>
           <button class="btn-sm ${p.activo ? 'btn-del' : 'btn-add'}" onclick="window.invToggleActivo(${p.id},${p.activo})">${p.activo ? 'Dar de baja' : 'Reactivar'}</button>
+          ${p.activo ? '' : `<button class="btn-sm btn-eliminar" onclick="window.invEliminar(${p.id})" title="Borrar este producto para siempre">🗑 Eliminar</button>`}
         </td>
       </tr>`;
   }).join('');
@@ -625,6 +626,25 @@ async function invIngreso(id){
     p_cantidad: num, p_costo_unitario: p ? p.precio_compra : 0, p_proveedor_id: null
   });
   if(error){ alert('No se pudo registrar el ingreso: ' + error.message); return; }
+  await cargarTodo();
+}
+
+// Eliminar un producto que ya está dado de baja. La base lo rechaza si tiene ventas, devoluciones o bonificaciones
+// (para no perder el historial); si solo tiene stock, se descarta junto con el producto.
+async function invEliminar(id){
+  const p = productos.find(p => p.id === id);
+  if(!p) return;
+  const stock = Number(p.stock_actual) || 0;
+  const aviso = `¿Eliminar "${p.nombre}" para siempre?
+
+Esto no se puede deshacer.` +
+    (stock > 0 ? `
+Tiene ${stock} en stock: se descarta junto con el producto.` : '') +
+    `
+Si tiene ventas, devoluciones o bonificaciones registradas no se elimina (queda dado de baja).`;
+  if(!(await confirmDialog(aviso, { confirmLabel: 'Eliminar' }))) return;
+  const { error } = await sb.rpc('eliminar_producto', { p_id: id });
+  if(error){ alert(error.message); return; }
   await cargarTodo();
 }
 
@@ -800,4 +820,4 @@ async function exportarPDF(modo){
   guardarPDF(doc, `${fecha.replace(/\//g,'-')}_Lista_DIARNEC_${sufijo}.pdf`);
 }
 
-Object.assign(window, { invUpdate, invIngreso, invToggleActivo, invImagen, invEditar, mkEditar, mkBorrar, ctEditar, ctBorrar });
+Object.assign(window, { invUpdate, invIngreso, invToggleActivo, invEliminar, invImagen, invEditar, mkEditar, mkBorrar, ctEditar, ctBorrar });
