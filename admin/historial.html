@@ -58,8 +58,11 @@
   .modal-box select, .modal-box input{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px;}
   .modal-box .modal-actions{display:flex;gap:10px;margin-top:20px;}
   .modal-box .modal-actions button{flex:1;padding:10px;border:none;border-radius:8px;font-weight:600;cursor:pointer;font-size:13px;}
-  .modal-cancel{background:var(--paper);color:var(--ink);}
-  .modal-confirm{background:var(--navy);color:#fff;}
+  /* Cancelar = blanco con borde · Confirmar/Guardar = verde · (lo destructivo va en rojo con .btn-del) */
+  .modal-box .modal-actions .modal-cancel{background:#fff;color:var(--ink);border:1.5px solid #B8C4CE;}
+  .modal-box .modal-actions .modal-cancel:hover{background:var(--paper);}
+  .modal-box .modal-actions .modal-confirm{background:var(--green);color:#fff;}
+  .modal-box .modal-actions .modal-confirm:hover{filter:brightness(.94);}
   .modal-err{color:#C0392B;font-size:12px;margin-top:8px;min-height:14px;}
   .ed-note{font-size:12px;color:var(--muted);margin:10px 0 0;}
   .items-total{text-align:right;font-weight:700;margin-top:10px;font-size:14px;color:var(--navy);}

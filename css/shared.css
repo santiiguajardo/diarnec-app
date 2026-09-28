@@ -51,8 +51,10 @@ td{padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:middle;}
 .app-confirm-box input{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px;margin-bottom:16px;}
 .app-confirm-actions{display:flex;gap:10px;}
 .app-confirm-actions button{flex:1;padding:10px;border:none;border-radius:8px;font-weight:600;cursor:pointer;font-size:13px;}
-.app-confirm-cancel{background:var(--paper);color:var(--ink);}
-.app-confirm-ok{background:var(--navy);color:#fff;}
+.app-confirm-actions .app-confirm-cancel{background:#fff;color:var(--ink);border:1.5px solid #B8C4CE;}
+.app-confirm-actions .app-confirm-cancel:hover{background:var(--paper);}
+.app-confirm-actions .app-confirm-ok{background:var(--green);color:#fff;}
+.app-confirm-actions .app-confirm-ok.peligro{background:#C0392B;}
 
 /* Resumen de venta + descarga de factura (ver js/shared/venta-resumen.js) */
 .vr-overlay{position:fixed;inset:0;background:rgba(18,36,54,.5);display:flex;align-items:center;justify-content:center;z-index:150;padding:20px;}
