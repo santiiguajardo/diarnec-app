@@ -34,7 +34,7 @@ let comisionesMap = {}; // "vendedorId:marcaId" -> %
         </div>
         <div class="admin-section">
           <h3>Operaciones diarias</h3>
-          <p class="cta-hint" style="margin-bottom:8px;">Se abre en grande. Si necesitás cargar dos o más a la vez (por ejemplo, ventas para dos vendedores), tocá <b>Achicar</b> (o abrí otra: la anterior se achica sola) y volvés a ella desde la barrita de abajo.</p>
+          <p class="cta-hint" style="margin-bottom:8px;">Se abre a pantalla completa. Si necesitás cargar dos o más a la vez (por ejemplo, ventas para dos vendedores), tocá <b>Minimizar</b> (o abrí otra: la anterior se minimiza sola) y volvés a ella desde la barrita de abajo.</p>
           <div class="side-btns">
             <button class="side-btn btn-op1" id="btn-retiro"><span class="side-ico">📦</span>1. Cargar retiro / venta</button>
             <button class="side-btn btn-op2" id="btn-devolucion"><span class="side-ico">↩️</span>2. Devoluciones</button>
@@ -499,10 +499,10 @@ function leerItems(tbodyId, err){
 }
 
 // ===== Ventanas de trabajo: retiro/venta, devolución, bonificación y devolución de stock =====
-// Cada botón abre una ventana GRANDE (como un cuadro). Si hace falta cargar dos o más a la vez (por ejemplo, ventas para
-// dos vendedores), se la achica con "Achicar" —queda como una barrita abajo con el vendedor y el total— y se abre otra;
-// tocando la barrita vuelve a agrandarse. Solo una está grande a la vez. Cada ventana lleva su propio vendedor,
-// sus productos y sus totales, y se confirma o se cierra por separado.
+// Cada botón abre una ventana a PANTALLA COMPLETA. Si hace falta cargar dos o más a la vez (por ejemplo, ventas para
+// dos vendedores), se la minimiza con "Minimizar" —queda como una barrita abajo con el vendedor y el total— y se abre otra;
+// tocando la barrita vuelve a abrirse a pantalla completa. Solo una está abierta a la vez. Cada ventana lleva su propio
+// vendedor, sus productos y sus totales, y se confirma o se cierra por separado.
 
 const MAX_VENTANAS = 4;
 const TIPOS_VENTANA = {
@@ -593,7 +593,7 @@ function abrirVentana(tipo, pedido = null){
   el.innerHTML = `
     <header class="vt-head">
       <span class="vt-titulo" id="${pfx}-vtitulo"></span>
-      <button type="button" class="vt-btn vt-min" title="Achicar para poder cargar otra a la vez">⤓ Achicar</button>
+      <button type="button" class="vt-btn vt-min" title="Minimizar para poder cargar otra a la vez">⤓ Minimizar</button>
       <button type="button" class="vt-btn vt-x" title="Cerrar">✕</button>
     </header>
     <div class="vt-body">${formularioVentana(tipo, pfx)}</div>`;
@@ -642,7 +642,7 @@ function abrirVentana(tipo, pedido = null){
   if(items.length) items.forEach(it => agregarFilaItem(tbodyId, totalId, it));
   else agregarFilaItem(tbodyId, totalId);
   actualizarTituloVentana(w);
-  agrandarVentana(w); // la nueva se abre grande; si había otra grande, se achica sola
+  agrandarVentana(w); // la nueva se abre a pantalla completa; si había otra abierta, se minimiza sola
 }
 
 // Solo una ventana está grande a la vez.
@@ -651,8 +651,8 @@ function fijarTamano(w, grande){
   w.el.classList.toggle('grande', grande);
   w.el.classList.toggle('chico', !grande);
   const b = w.el.querySelector('.vt-min');
-  b.textContent = grande ? '⤓ Achicar' : '⤢ Agrandar';
-  b.title = grande ? 'Achicar para poder cargar otra a la vez' : 'Volver a agrandarla';
+  b.textContent = grande ? '⤓ Minimizar' : '⤢ Abrir';
+  b.title = grande ? 'Minimizar para poder cargar otra a la vez' : 'Abrirla a pantalla completa';
 }
 function agrandarVentana(w){
   ventanas.forEach(x => { if(x !== w && x.grande) fijarTamano(x, false); });
@@ -665,7 +665,10 @@ function achicarVentana(w){
 }
 function refrescarVentanas(){
   document.getElementById('vt-fondo').classList.toggle('on', ventanas.some(x => x.grande));
-  document.documentElement.classList.toggle('vt-hay', ventanas.length > 0);
+  const raiz = document.documentElement.classList;
+  raiz.toggle('vt-hay', ventanas.length > 0);
+  raiz.toggle('vt-grande', ventanas.some(x => x.grande));
+  raiz.toggle('vt-chicas', ventanas.some(x => !x.grande));
 }
 
 async function cerrarVentana(w, forzar = false){
