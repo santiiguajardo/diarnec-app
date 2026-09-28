@@ -62,23 +62,36 @@
   .modal-box{background:#fff;border-radius:14px;padding:26px;width:360px;max-width:92vw;}
   .modal-box h3{font-family:var(--display,'Archivo',sans-serif);color:var(--navy);margin-bottom:6px;}
   .modal-box p{font-size:13px;color:var(--muted);margin-bottom:16px;}
-  .ep-precios{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px;}
-  .ep-precio{border:2px solid var(--line);border-radius:12px;padding:10px 12px 12px;}
+  .ep-precios{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px;}
+  .ep-precio{border:1.5px solid var(--line);border-left-width:5px;border-radius:9px;padding:6px 10px 8px;}
   .ep-costo-box{border-color:#E0A458;background:#FFF8EC;} .ep-venta-box{border-color:#2BB673;background:#F1FBF6;}
-  .ep-precio label{margin:0 0 2px;font-size:13px;font-weight:800;letter-spacing:.04em;color:var(--navy);}
+  .ep-precio label{margin:0 0 4px;font-size:12px;font-weight:800;color:var(--navy);}
+  .ep-precio label small{font-weight:500;color:var(--muted);}
   .ep-costo-box label{color:#9A5B00;} .ep-venta-box label{color:#17804F;}
-  .ep-precio small{display:block;font-size:11.5px;line-height:1.3;color:var(--muted);margin-bottom:8px;min-height:30px;}
-  .ep-input{display:flex;align-items:center;gap:6px;} .ep-input span{font-weight:800;color:var(--muted);}
-  .ep-input input{font-size:16px;font-weight:700;}
-  .ep-ganancia{margin-top:10px;font-size:13px;border-radius:8px;padding:8px 10px;background:var(--paper);color:var(--muted);}
+  .ep-input{display:flex;align-items:center;gap:5px;} .ep-input span{font-weight:800;color:var(--muted);font-size:13px;}
+  .ep-input input{font-size:14px;font-weight:700;padding:6px 8px;}
+  .ep-ganancia{margin-top:8px;font-size:12px;border-radius:7px;padding:6px 9px;background:var(--paper);color:var(--muted);}
   .ep-ganancia b{color:var(--navy);} .ep-ganancia.mal{background:#FFF0F0;color:#C0392B;} .ep-ganancia.mal b{color:#C0392B;}
-  @media (max-width:520px){ .ep-precios{grid-template-columns:1fr;} .ep-precio small{min-height:0;} }
+  @media (max-width:520px){ .ep-precios{grid-template-columns:1fr;} }
+  /* Formulario "Agregar producto": precios con su nombre encima */
+  .pf-label{display:flex;flex-direction:column;gap:3px;font-size:11px;font-weight:700;letter-spacing:.03em;}
+  .pf-costo{color:#9A5B00;} .pf-venta{color:#17804F;}
+  .pf-label input{font-weight:400;letter-spacing:0;}
+  /* Un color por acción, para no confundir botones */
+  .btn-marca{background:#8e44ad;color:#fff;}      /* violeta: marcas */
+  .btn-categoria{background:#2E86DE;color:#fff;}  /* azul: categorías */
+  .btn-pdf{background:#16a085;color:#fff;}        /* verde agua: lista en PDF */
+  .btn-stock{background:#fff;color:#17804F;border:1.5px solid #2BB673;} /* + stock: verde de contorno */
+  .btn-stock:hover{background:#F1FBF6;}
   .modal-box label{display:block;font-size:12px;color:var(--muted);margin:12px 0 4px;}
   .modal-box select, .modal-box input{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px;}
   .modal-box .modal-actions{display:flex;gap:10px;margin-top:20px;}
   .modal-box .modal-actions button{flex:1;padding:10px;border:none;border-radius:8px;font-weight:600;cursor:pointer;font-size:13px;}
-  .modal-cancel{background:var(--paper);color:var(--ink);}
-  .modal-confirm{background:var(--navy);color:#fff;}
+  /* Cancelar = blanco con borde · Confirmar/Guardar = verde · (lo destructivo va en rojo con .btn-del) */
+  .modal-box .modal-actions .modal-cancel{background:#fff;color:var(--ink);border:1.5px solid #B8C4CE;}
+  .modal-box .modal-actions .modal-cancel:hover{background:var(--paper);}
+  .modal-box .modal-actions .modal-confirm{background:var(--green);color:#fff;}
+  .modal-box .modal-actions .modal-confirm:hover{filter:brightness(.94);}
   .pdf-choice{display:flex;gap:10px;}
   .pdf-choice button{flex:1;padding:16px 10px;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-size:13px;color:#fff;}
 
@@ -215,13 +228,11 @@
     <input type="text" id="ep-sku">
     <div class="ep-precios">
       <div class="ep-precio ep-costo-box">
-        <label for="ep-costo">Precio de COSTO</label>
-        <small>Lo que te cuesta a vos (lo que pagás al proveedor)</small>
+        <label for="ep-costo">Costo <small>(lo que pagás)</small></label>
         <div class="ep-input"><span>$</span><input type="number" step="0.01" id="ep-costo"></div>
       </div>
       <div class="ep-precio ep-venta-box">
-        <label for="ep-precio">Precio de VENTA</label>
-        <small>Lo que cobrás (el que ve el cliente, precio de comercio)</small>
+        <label for="ep-precio">Venta <small>(lo que cobrás)</small></label>
         <div class="ep-input"><span>$</span><input type="number" step="0.01" id="ep-precio"></div>
       </div>
     </div>

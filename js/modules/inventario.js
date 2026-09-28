@@ -83,8 +83,8 @@ async function deshacer(){
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
         <h3 style="margin:0;">Agregar producto nuevo</h3>
         <div class="inv-actions" style="margin:0;">
-          <button class="btn-sm btn-green" id="btn-marcas">+ Agregar marca</button>
-          <button class="btn-sm btn-green" id="btn-categorias">+ Agregar categoría</button>
+          <button class="btn-sm btn-marca" id="btn-marcas">+ Agregar marca</button>
+          <button class="btn-sm btn-categoria" id="btn-categorias">+ Agregar categoría</button>
         </div>
       </div>
       <div class="form-row">
@@ -96,9 +96,9 @@ async function deshacer(){
         <button class="btn-sm btn-add" id="np-submit">Agregar</button>
       </div>
       <div class="form-row" style="grid-template-columns:1fr 1fr 1fr;">
-        <input type="number" step="0.01" id="np-costo" placeholder="Precio de COSTO $ (lo que pagás)" title="Precio de costo: lo que te cuesta a vos">
-        <input type="number" step="0.01" id="np-precio" placeholder="Precio de VENTA $ (lo que cobrás)" title="Precio de venta: lo que cobrás">
-        <input type="text" id="np-imagen" placeholder="Imagen (URL, opcional)">
+        <label class="pf-label pf-costo">COSTO (lo que pagás)<input type="number" step="0.01" id="np-costo" placeholder="$"></label>
+        <label class="pf-label pf-venta">VENTA (lo que cobrás)<input type="number" step="0.01" id="np-precio" placeholder="$"></label>
+        <label class="pf-label">Imagen (opcional)<input type="text" id="np-imagen" placeholder="URL de la foto"></label>
       </div>
     </div>
 
@@ -108,7 +108,7 @@ async function deshacer(){
         <div class="inv-actions">
           <button class="btn-sm btn-undo" id="btn-deshacer" hidden title="">↶ Deshacer</button>
           <button class="btn-sm btn-yellow" id="btn-masiva">✏️ Act. Masiva (%)</button>
-          <button class="btn-sm btn-orange" id="btn-pdf">📄 Lista a PDF</button>
+          <button class="btn-sm btn-pdf" id="btn-pdf">📄 Lista a PDF</button>
         </div>
       </div>
       <div class="inv-toolbar">
@@ -463,7 +463,7 @@ function renderTabla(){
         <td>
           <span class="cant-badge">
             <b style="${bajoStock ? 'color:#C0392B;font-weight:700;' : ''}">${Number(p.stock_actual)}</b>
-            <button class="btn-sm" onclick="window.invIngreso(${p.id})">+ stock</button>
+            <button class="btn-sm btn-stock" onclick="window.invIngreso(${p.id})" title="Sumar stock a este producto">+ Stock</button>
           </span>
         </td>
         <td class="row-btns">

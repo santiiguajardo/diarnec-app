@@ -18,6 +18,8 @@ export function confirmDialog(message, { confirmLabel = 'Confirmar', cancelLabel
         </div>
       </div>`;
     document.body.appendChild(overlay);
+    // Las acciones que borran o anulan algo se marcan en rojo para que no se confundan con un "Confirmar" común
+    if(/borrar|eliminar|anular|cancelar el|dar de baja/i.test(confirmLabel + ' ' + message)) overlay.querySelector('.app-confirm-ok').classList.add('peligro');
 
     const cleanup = (result) => { overlay.remove(); resolve(result); };
     overlay.querySelector('.app-confirm-cancel').addEventListener('click', () => cleanup(false));
