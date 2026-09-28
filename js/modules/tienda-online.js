@@ -2,6 +2,7 @@ import { sb } from '../shared/supabase-client.js';
 import { requireAuth, getPerfil } from '../shared/auth-guard.js';
 import { mountLayout, refrescarAvisoPedidos } from '../shared/layout.js';
 import { money, dateTime } from '../shared/format.js';
+import { guardarPDF } from '../shared/guardar-pdf.js';
 import { confirmDialog } from '../shared/dialogs.js';
 import { abrirDetalleCuenta } from '../shared/cuenta-detalle.js';
 import { createProductPicker } from '../shared/product-picker.js';
@@ -529,5 +530,5 @@ async function generarComprobante(id){
   doc.setFontSize(12);
   doc.text(`Total: ${money(p.total_neto)}`, 196, finalY, { align: 'right' });
 
-  doc.save(`Comprobante_Pedido_${p.id}.pdf`);
+  guardarPDF(doc, `Comprobante_Pedido_${p.id}.pdf`);
 }

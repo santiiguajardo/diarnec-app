@@ -5,6 +5,7 @@
 // (es lo que devuelve la función mi_remito de la base)
 
 import { money } from './format.js';
+import { guardarPDF } from './guardar-pdf.js';
 
 const soloAscii = s => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '')
   .replace(/[^A-Za-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
@@ -103,7 +104,7 @@ export async function armarRemitoPDF(r){
 
 export async function descargarRemito(r){
   const { doc, filename } = await armarRemitoPDF(r);
-  doc.save(filename);
+  guardarPDF(doc, filename);
 }
 
 // Celular: abre el menú de compartir con el PDF adjunto (se elige WhatsApp y el contacto).

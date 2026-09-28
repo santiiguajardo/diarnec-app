@@ -6,6 +6,7 @@ import { sb } from '../shared/supabase-client.js';
 import { requireVendedor, logout } from '../shared/auth-guard.js';
 import { USERNAME_EMAIL_DOMAIN } from '../shared/supabase-config.js';
 import { money, dateTime } from '../shared/format.js';
+import { guardarPDF } from '../shared/guardar-pdf.js';
 import { confirmDialog, instalarAvisos } from '../shared/dialogs.js';
 import { createProductPicker } from '../shared/product-picker.js';
 import { ajustarInputCantidad, cantidadEsValida, mensajeCantidad } from '../shared/cantidad.js';
@@ -784,5 +785,5 @@ async function descargarPDF(){
     }
   });
 
-  doc.save(`${fecha.replace(/\//g, '-')}_Lista_DIARNEC.pdf`);
+  guardarPDF(doc, `${fecha.replace(/\//g, '-')}_Lista_DIARNEC.pdf`);
 }
