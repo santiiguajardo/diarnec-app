@@ -107,7 +107,5 @@ export async function mountLayout(activeKey, pageTitle){
 
   document.getElementById('logout-btn').addEventListener('click', logout);
   if(modulos.some(m => m.key === 'tienda')) iniciarAvisoPedidos();
-  // Asistente (chat) disponible en todo el panel de gestión; si falla no rompe la página
-  import('./asistente.js').then(m => m.montarAsistente()).catch(e => console.warn('Asistente no disponible:', e));
   return document.getElementById('admin-content');
 }
