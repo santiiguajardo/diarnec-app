@@ -1,8 +1,8 @@
 // Guardar un PDF armado con jsPDF.
 //  · Computadora: se descarga directo.
 //  · Celular: el navegador suele abrir el PDF en su visor (sin opción de descargar). Por eso se muestra un cuadro
-//    "PDF listo" con botones propios: Descargar (baja el archivo), Compartir (menú del celular: WhatsApp, Drive,
-//    "Guardar en Archivos"...) y Abrir (verlo).
+//    "PDF listo" con botones propios: Abrir (verlo) y Compartir (menú del celular: WhatsApp, Drive,
+//    "Guardar en Archivos"...). No hay botón "Descargar" aparte porque en los celulares hacía lo mismo que Abrir.
 
 const esCelular = () => /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
   || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent)); // iPad que se hace pasar por Mac
@@ -27,20 +27,17 @@ export function guardarPDF(doc, nombre){
       <p style="margin-bottom:4px;"><b>📄 Tu PDF está listo</b></p>
       <p class="pdf-nombre">${esc(nombre)}</p>
       <div class="pdf-botones">
-        <a class="pdf-btn pdf-descargar" href="${url}" download="${esc(nombre)}">⬇ Descargar</a>
-        ${puedeCompartir ? '<button type="button" class="pdf-btn pdf-compartir">📤 Compartir / Guardar en…</button>' : ''}
         <a class="pdf-btn pdf-abrir" href="${url}" target="_blank" rel="noopener">👁 Abrir para verlo</a>
+        ${puedeCompartir ? '<button type="button" class="pdf-btn pdf-compartir">📤 Compartir / Guardar en…</button>' : ''}
         <button type="button" class="pdf-btn pdf-cerrar">Cerrar</button>
       </div>
-      ${enOtraApp() ? '<p class="pdf-aviso">⚠️ Estás viendo la página dentro de otra aplicación y ahí no siempre se puede descargar. Si no se baja, abrí esta página en <b>Chrome</b> o <b>Safari</b> (menú ⋮ → "Abrir en el navegador").</p>' : ''}
+      ${enOtraApp() ? '<p class="pdf-aviso">⚠️ Estás viendo la página dentro de otra aplicación y ahí a veces no se puede ver ni guardar el archivo. Si no funciona, abrí esta página en <b>Chrome</b> o <b>Safari</b> (menú ⋮ → "Abrir en el navegador").</p>' : ''}
     </div>`;
   document.body.appendChild(overlay);
 
   const cerrar = () => { overlay.remove(); setTimeout(() => URL.revokeObjectURL(url), 60000); };
   overlay.querySelector('.pdf-cerrar').addEventListener('click', cerrar);
   overlay.addEventListener('click', e => { if(e.target === overlay) cerrar(); });
-  // Después de tocar Descargar se deja el cuadro un momento y se cierra solo
-  overlay.querySelector('.pdf-descargar').addEventListener('click', () => setTimeout(cerrar, 1500));
   const bc = overlay.querySelector('.pdf-compartir');
   if(bc) bc.addEventListener('click', async () => {
     try { await navigator.share({ files: [file], title: nombre }); cerrar(); }
