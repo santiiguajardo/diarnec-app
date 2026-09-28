@@ -64,8 +64,26 @@ async function deshacer(){
   content.innerHTML = `
     <div id="venc-box"></div>
     <div class="stats-bar">
-      <div><span>Total Artículos:</span><b id="stat-total">0</b></div>
+      <div><span>Artículos:</span><b id="stat-total">0</b></div>
+      <div><span>Unidades en stock:</span><b id="stat-unidades">0</b></div>
       <div><span>Capital en Stock (Costo):</span><b id="stat-capital">$0</b></div>
+      <button class="btn-desglose" id="btn-desglose" type="button">📊 Ver por marca y categoría</button>
+    </div>
+    <div class="admin-section desglose-box" id="desglose-box" hidden>
+      <p style="color:var(--muted);font-size:12.5px;margin:-4px 0 14px;">
+        Artículos = cuántos productos distintos hay cargados (lo que se ve en la tienda). Unidades = cuánto stock hay de todos ellos sumado.
+        Capital = precio de costo × stock de cada uno. Respeta el buscador y los filtros de arriba.
+      </p>
+      <div class="desglose-cols">
+        <div>
+          <h4>Por marca</h4>
+          <table class="desglose-tabla"><thead><tr><th>Marca</th><th class="num">Art.</th><th class="num">Unid.</th><th class="num">Capital</th></tr></thead><tbody id="desglose-marca"></tbody></table>
+        </div>
+        <div>
+          <h4>Por categoría</h4>
+          <table class="desglose-tabla"><thead><tr><th>Categoría</th><th class="num">Art.</th><th class="num">Unid.</th><th class="num">Capital</th></tr></thead><tbody id="desglose-categoria"></tbody></table>
+        </div>
+      </div>
     </div>
 
     <div class="admin-section inv-ingreso">
@@ -167,6 +185,12 @@ async function deshacer(){
     if(f) adjuntarRemito(f);
   });
   document.getElementById('np-submit').addEventListener('click', agregarProducto);
+  document.getElementById('btn-desglose').addEventListener('click', () => {
+    const box = document.getElementById('desglose-box');
+    box.hidden = !box.hidden;
+    document.getElementById('btn-desglose').textContent = box.hidden ? '📊 Ver por marca y categoría' : '📊 Ocultar desglose';
+    if(!box.hidden) renderDesglose(listaFiltrada());
+  });
   document.getElementById('btn-masiva').addEventListener('click', abrirMasiva);
   document.getElementById('btn-pdf').addEventListener('click', () => toggleModal('modal-pdf', true));
   document.getElementById('masiva-cancel').addEventListener('click', () => toggleModal('modal-masiva', false));
@@ -393,6 +417,44 @@ function margenPct(costo, venta){
   return ((venta - costo) / costo) * 100;
 }
 
+// Agrupa la lista (ya filtrada) por marca o por categoría: cuántos artículos, cuántas unidades de stock
+// y cuánto capital (costo × stock) hay en cada una. Ordenado por capital, de mayor a menor.
+function agruparPor(list, clave){
+  const grupos = new Map();
+  for(const p of list){
+    const nombre = clave === 'marca' ? nombreMarca(p) || 'Sin marca' : nombreCat(p) || 'Sin categoría';
+    if(!grupos.has(nombre)) grupos.set(nombre, { nombre, articulos: 0, unidades: 0, capital: 0 });
+    const g = grupos.get(nombre);
+    g.articulos++;
+    g.unidades += Number(p.stock_actual);
+    g.capital += Number(p.precio_compra) * Number(p.stock_actual);
+  }
+  return [...grupos.values()].sort((a, b) => b.capital - a.capital || cmp(a.nombre, b.nombre));
+}
+
+function filaDesglose(g, capitalTotal){
+  const pct = capitalTotal > 0 ? Math.round(g.capital / capitalTotal * 100) : 0;
+  return `<tr>
+    <td>${esc(g.nombre)}<div class="desglose-bar"><i style="width:${pct}%"></i></div></td>
+    <td class="num">${g.articulos}</td>
+    <td class="num">${g.unidades.toLocaleString('es-AR', { maximumFractionDigits: 2 })}</td>
+    <td class="num">${money(g.capital)}</td>
+  </tr>`;
+}
+
+function renderDesglose(list){
+  if(document.getElementById('desglose-box').hidden) return; // no hace falta calcular si está cerrado
+  const capitalTotal = list.reduce((s, p) => s + Number(p.precio_compra) * Number(p.stock_actual), 0);
+  const porMarcaTabla = agruparPor(list, 'marca');
+  const porCategoriaTabla = agruparPor(list, 'categoria');
+  document.getElementById('desglose-marca').innerHTML = porMarcaTabla.length
+    ? porMarcaTabla.map(g => filaDesglose(g, capitalTotal)).join('')
+    : '<tr><td colspan="4" class="empty-row">Sin datos.</td></tr>';
+  document.getElementById('desglose-categoria').innerHTML = porCategoriaTabla.length
+    ? porCategoriaTabla.map(g => filaDesglose(g, capitalTotal)).join('')
+    : '<tr><td colspan="4" class="empty-row">Sin datos.</td></tr>';
+}
+
 function listaFiltrada(){
   let list = productos.filter(p => mostrarInactivos ? true : p.activo);
   if(filtroTexto) list = list.filter(p => p.nombre.toLowerCase().includes(filtroTexto));
@@ -434,8 +496,11 @@ function renderTabla(){
   const list = listaFiltrada();
 
   document.getElementById('stat-total').textContent = list.length;
+  const unidades = list.reduce((s,p) => s + Number(p.stock_actual), 0);
+  document.getElementById('stat-unidades').textContent = unidades.toLocaleString('es-AR', { maximumFractionDigits: 2 });
   const capital = list.reduce((s,p) => s + Number(p.precio_compra) * Number(p.stock_actual), 0);
   document.getElementById('stat-capital').textContent = money(capital);
+  renderDesglose(list);
 
   if(list.length === 0){
     tbody.innerHTML = `<tr><td colspan="10" class="empty-row">No hay productos que coincidan.</td></tr>`;
@@ -460,7 +525,7 @@ function renderTabla(){
         <td>${esc(p.marcas ? p.marcas.nombre : '')}</td>
         <td class="wrap"><b>${esc(p.nombre)}</b>${p.etiqueta ? ` <span class="etq-panel etq-${p.etiqueta}">${p.etiqueta === 'oferta' ? 'OFERTA' : 'NUEVO'}</span>` : ''}</td>
         <td>${esc(p.unidad || '')}</td>
-        <td><input class="cell-input" type="number" step="0.01" value="${p.precio_compra}" onchange="window.invUpdate(${p.id},'precio_compra',this.value)"></td>
+        <td><input class="cell-input${!Number(p.precio_compra) && Number(p.stock_actual) > 0 ? ' sin-costo' : ''}" type="number" step="0.01" value="${p.precio_compra}" onchange="window.invUpdate(${p.id},'precio_compra',this.value)" title="${!Number(p.precio_compra) && Number(p.stock_actual) > 0 ? 'Sin costo cargado: este stock no suma al Capital en Stock' : ''}"></td>
         <td><span class="${margenClass}">${margenTxt}</span></td>
         <td><input class="cell-input" type="number" step="0.01" value="${p.precio_venta}" onchange="window.invUpdate(${p.id},'precio_venta',this.value)"></td>
         <td>
