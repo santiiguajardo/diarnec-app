@@ -352,7 +352,10 @@
     else if(activeCat !== "Todos") base = base.filter(p => p.cat === activeCat);
     const palabras = norm(query).split(/\s+/).filter(Boolean);
     if(palabras.length) base = base.filter(p => palabras.every(w => p.hay.includes(w)));
-    const list = [...base].sort(SORTERS[sortBy] || SORTERS.price_desc);
+    // Las ofertas van primero, después los nuevos y después el resto; dentro de cada grupo rige el orden elegido.
+    const rango = p => p.tag === 'oferta' ? 0 : p.tag === 'nuevo' ? 1 : 2;
+    const orden = SORTERS[sortBy] || SORTERS.price_desc;
+    const list = [...base].sort((a, b) => rango(a) - rango(b) || orden(a, b));
     if(list.length === 0){
       el.className = 'grid';
       el.innerHTML = palabras.length
