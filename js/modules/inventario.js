@@ -96,8 +96,8 @@ async function deshacer(){
         <button class="btn-sm btn-add" id="np-submit">Agregar</button>
       </div>
       <div class="form-row" style="grid-template-columns:1fr 1fr 1fr;">
-        <input type="number" step="0.01" id="np-costo" placeholder="Costo $">
-        <input type="number" step="0.01" id="np-precio" placeholder="Precio de venta $">
+        <input type="number" step="0.01" id="np-costo" placeholder="Precio de COSTO $ (lo que pagás)" title="Precio de costo: lo que te cuesta a vos">
+        <input type="number" step="0.01" id="np-precio" placeholder="Precio de VENTA $ (lo que cobrás)" title="Precio de venta: lo que cobrás">
         <input type="text" id="np-imagen" placeholder="Imagen (URL, opcional)">
       </div>
     </div>
@@ -134,7 +134,7 @@ async function deshacer(){
       </div>
       <table class="inv">
         <thead><tr>
-          <th></th><th>Categoría</th><th>Marca</th><th>Artículo</th><th>Unidad</th><th>Costo</th><th>Margen %</th><th>Precio</th><th>Stock</th><th></th>
+          <th></th><th>Categoría</th><th>Marca</th><th>Artículo</th><th>Unidad</th><th title="Lo que te cuesta a vos">Precio de costo</th><th title="Ganancia sobre el costo">Margen %</th><th title="Lo que cobrás">Precio de venta</th><th>Stock</th><th></th>
         </tr></thead>
         <tbody id="inv-body"></tbody>
       </table>
@@ -179,6 +179,8 @@ async function deshacer(){
   document.getElementById('imagen-desc').addEventListener('input', actualizarCuentaDesc);
   document.getElementById('prod-cancel').addEventListener('click', () => toggleModal('modal-producto', false));
   document.getElementById('prod-guardar').addEventListener('click', guardarProducto);
+  document.getElementById('ep-costo').addEventListener('input', actualizarGananciaEdicion);
+  document.getElementById('ep-precio').addEventListener('input', actualizarGananciaEdicion);
   document.getElementById('btn-deshacer').addEventListener('click', deshacer);
 
   // Administrar marcas y categorías
@@ -503,6 +505,22 @@ async function agregarProducto(){
 
 // ===== Editar producto (marca, nombre, presentacion, categoria, sku, costo, precio) =====
 
+// Debajo de los dos precios: cuánto ganás por unidad con esos valores.
+function actualizarGananciaEdicion(){
+  const el = document.getElementById('ep-ganancia');
+  const costo = parseFloat(document.getElementById('ep-costo').value);
+  const venta = parseFloat(document.getElementById('ep-precio').value);
+  el.classList.remove('mal');
+  if(isNaN(venta) || venta <= 0){ el.textContent = 'Cargá el precio de venta.'; return; }
+  if(isNaN(costo) || costo <= 0){ el.textContent = 'Sin precio de costo cargado: no se puede calcular la ganancia.'; return; }
+  const gan = venta - costo;
+  const pct = (gan / costo) * 100;
+  if(gan < 0) el.classList.add('mal');
+  el.innerHTML = gan < 0
+    ? `⚠️ Estás vendiendo <b>por debajo del costo</b>: perdés <b>${money(-gan)}</b> por unidad.`
+    : `Ganás <b>${money(gan)}</b> por unidad (<b>${pct.toFixed(1)}%</b> sobre el costo).`;
+}
+
 function invEditar(id){
   const p = productos.find(p => p.id === id);
   if(!p) return;
@@ -516,6 +534,7 @@ function invEditar(id){
   document.getElementById('ep-costo').value = p.precio_compra;
   document.getElementById('ep-precio').value = p.precio_venta;
   document.getElementById('ep-err').textContent = '';
+  actualizarGananciaEdicion();
   toggleModal('modal-producto', true);
 }
 

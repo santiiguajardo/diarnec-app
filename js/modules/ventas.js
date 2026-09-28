@@ -20,7 +20,7 @@ let comisionesMap = {}; // "vendedorId:marcaId" -> %
 
 (async function init(){
   if(!(await requireAuth())) return;
-  const content = await mountLayout('ventas', 'Ventas');
+  const content = await mountLayout('ventas', 'Movimientos');
 
   content.innerHTML = `
     <div class="ventas-top">

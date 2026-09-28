@@ -62,6 +62,17 @@
   .modal-box{background:#fff;border-radius:14px;padding:26px;width:360px;max-width:92vw;}
   .modal-box h3{font-family:var(--display,'Archivo',sans-serif);color:var(--navy);margin-bottom:6px;}
   .modal-box p{font-size:13px;color:var(--muted);margin-bottom:16px;}
+  .ep-precios{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px;}
+  .ep-precio{border:2px solid var(--line);border-radius:12px;padding:10px 12px 12px;}
+  .ep-costo-box{border-color:#E0A458;background:#FFF8EC;} .ep-venta-box{border-color:#2BB673;background:#F1FBF6;}
+  .ep-precio label{margin:0 0 2px;font-size:13px;font-weight:800;letter-spacing:.04em;color:var(--navy);}
+  .ep-costo-box label{color:#9A5B00;} .ep-venta-box label{color:#17804F;}
+  .ep-precio small{display:block;font-size:11.5px;line-height:1.3;color:var(--muted);margin-bottom:8px;min-height:30px;}
+  .ep-input{display:flex;align-items:center;gap:6px;} .ep-input span{font-weight:800;color:var(--muted);}
+  .ep-input input{font-size:16px;font-weight:700;}
+  .ep-ganancia{margin-top:10px;font-size:13px;border-radius:8px;padding:8px 10px;background:var(--paper);color:var(--muted);}
+  .ep-ganancia b{color:var(--navy);} .ep-ganancia.mal{background:#FFF0F0;color:#C0392B;} .ep-ganancia.mal b{color:#C0392B;}
+  @media (max-width:520px){ .ep-precios{grid-template-columns:1fr;} .ep-precio small{min-height:0;} }
   .modal-box label{display:block;font-size:12px;color:var(--muted);margin:12px 0 4px;}
   .modal-box select, .modal-box input{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px;}
   .modal-box .modal-actions{display:flex;gap:10px;margin-top:20px;}
@@ -202,10 +213,19 @@
     <select id="ep-categoria"></select>
     <label>SKU (opcional)</label>
     <input type="text" id="ep-sku">
-    <div class="adm-form" style="margin-bottom:0;">
-      <input type="number" step="0.01" id="ep-costo" placeholder="Costo $" style="flex:1;">
-      <input type="number" step="0.01" id="ep-precio" placeholder="Precio de venta $" style="flex:1;">
+    <div class="ep-precios">
+      <div class="ep-precio ep-costo-box">
+        <label for="ep-costo">Precio de COSTO</label>
+        <small>Lo que te cuesta a vos (lo que pagás al proveedor)</small>
+        <div class="ep-input"><span>$</span><input type="number" step="0.01" id="ep-costo"></div>
+      </div>
+      <div class="ep-precio ep-venta-box">
+        <label for="ep-precio">Precio de VENTA</label>
+        <small>Lo que cobrás (el que ve el cliente, precio de comercio)</small>
+        <div class="ep-input"><span>$</span><input type="number" step="0.01" id="ep-precio"></div>
+      </div>
     </div>
+    <div class="ep-ganancia" id="ep-ganancia"></div>
     <div class="adm-msg" id="ep-err"></div>
     <div class="modal-actions">
       <button class="modal-cancel" id="prod-cancel">Cancelar</button>
