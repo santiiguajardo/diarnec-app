@@ -11,7 +11,6 @@ import { ajustarInputCantidad, cantidadEsValida, mensajeCantidad } from '../shar
 let vendedores = [];
 let vendedorOnline = null; // vendedor fijo "Tienda Online" (es_canal_online)
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-let pedidoEnCurso = null; // pedido online que se está pasando a venta en el modal de retiro
 let clientes = [];
 let marcas = [];
 let productos = [];
@@ -35,6 +34,7 @@ let comisionesMap = {}; // "vendedorId:marcaId" -> %
         </div>
         <div class="admin-section">
           <h3>Operaciones diarias</h3>
+          <p class="cta-hint" style="margin-bottom:8px;">Cada botón abre una ventana nueva: podés tener varias abiertas a la vez (por ejemplo, ventas para dos vendedores) y minimizarlas tocando su barra.</p>
           <div class="side-btns">
             <button class="side-btn btn-op1" id="btn-retiro"><span class="side-ico">📦</span>1. Cargar retiro / venta</button>
             <button class="side-btn btn-op2" id="btn-devolucion"><span class="side-ico">↩️</span>2. Devoluciones</button>
@@ -76,6 +76,14 @@ let comisionesMap = {}; // "vendedorId:marcaId" -> %
 
   wireBotones();
 
+  // Las ventanas de trabajo se apoyan abajo, a la derecha del menú lateral
+  const ajustarDock = () => {
+    const side = document.querySelector('.admin-sidebar');
+    document.documentElement.style.setProperty('--vt-left', (side && side.offsetWidth > 0 && window.innerWidth > 900 ? side.offsetWidth : 0) + 'px');
+  };
+  ajustarDock();
+  window.addEventListener('resize', ajustarDock);
+
   // Administrar comisiones: solo el admin. La base ya lo hace cumplir (RLS); esto además evita
   // que el encargado vea un botón que le va a tirar error si lo toca.
   const perfil = await getPerfil();
@@ -109,16 +117,11 @@ async function cargarBase(){
 
   // "Tienda Online" tiene su cuenta corriente (sin comisión) y entra en retiro/venta, devoluciones, bonificaciones
   // y pagos. NO entra en "devolución de stock": lo que vuelve de la tienda online no se repone al stock.
-  populateSelect('rt-vendedor', vendedorOnline ? [...vendedoresActivos, vendedorOnline] : vendedoresActivos, 'id', 'nombre');
+  // Listas que usa cada ventana al abrirse ("Tienda online" entra en todas menos en devolución de stock)
   const conOnline = vendedorOnline ? [...vendedoresActivos, { id: vendedorOnline.id, nombre: 'Tienda online' }] : vendedoresActivos;
-  populateSelect('dv-vendedor', conOnline, 'id', 'nombre');
-  populateSelect('bf-vendedor', conOnline, 'id', 'nombre');
-  populateSelect('ds-vendedor', vendedoresActivos, 'id', 'nombre');
+  vendedoresPorTipo = { rt: vendedorOnline ? [...vendedoresActivos, vendedorOnline] : vendedoresActivos, dv: conOnline, bf: conOnline, ds: vendedoresActivos };
+  clientesParaVenta = clientesActivos;
   populateSelect('cm-vendedor', vendedoresActivos, 'id', 'nombre', 'Elegí un vendedor');
-
-  const rtCliente = document.getElementById('rt-cliente');
-  rtCliente.innerHTML = '<option value="">Sin cliente asignado</option>' +
-    clientesActivos.map(c => `<option value="${c.id}">${esc(c.nombre)}</option>`).join('');
 
   renderVendedoresList();
   renderClientesList();
@@ -190,11 +193,11 @@ function wireBotones(){
   document.getElementById('btn-vendedores').addEventListener('click', () => abrirModal('modal-vendedores'));
   document.getElementById('btn-comisiones').addEventListener('click', () => abrirModal('modal-comisiones'));
   document.getElementById('btn-clientes').addEventListener('click', () => abrirModal('modal-clientes'));
-  document.getElementById('btn-retiro').addEventListener('click', () => abrirModalRetiro());
-  document.getElementById('btn-devolucion').addEventListener('click', () => abrirModalDevolucion());
-  document.getElementById('btn-bonificacion').addEventListener('click', () => abrirModalBonificacion());
+  document.getElementById('btn-retiro').addEventListener('click', () => abrirVentana('rt'));
+  document.getElementById('btn-devolucion').addEventListener('click', () => abrirVentana('dv'));
+  document.getElementById('btn-bonificacion').addEventListener('click', () => abrirVentana('bf'));
   document.getElementById('btn-pago').addEventListener('click', () => abrirModalPago());
-  document.getElementById('btn-devstock').addEventListener('click', () => abrirModalDevolucionStock());
+  document.getElementById('btn-devstock').addEventListener('click', () => abrirVentana('ds'));
 
   document.getElementById('vd-cerrar').addEventListener('click', () => cerrarModal('modal-vendedores'));
   document.getElementById('vd-agregar').addEventListener('click', agregarVendedor);
@@ -204,25 +207,6 @@ function wireBotones(){
 
   document.getElementById('cl-cerrar').addEventListener('click', () => cerrarModal('modal-clientes'));
   document.getElementById('cl-agregar').addEventListener('click', agregarCliente);
-
-  document.getElementById('rt-cerrar').addEventListener('click', cerrarRetiro);
-  // Al cambiar de vendedor cambian las comisiones de todas las filas (en las cuatro operaciones)
-  for(const pfx of ['rt', 'dv', 'bf', 'ds'])
-    document.getElementById(`${pfx}-vendedor`).addEventListener('change', () => recalcularTodasLasFilas(`${pfx}-items`, `${pfx}-total`));
-  document.getElementById('rt-add').addEventListener('click', () => agregarFilaItem('rt-items', 'rt-total'));
-  document.getElementById('rt-confirmar').addEventListener('click', confirmarRetiro);
-
-  document.getElementById('dv-cerrar').addEventListener('click', () => cerrarModal('modal-devolucion'));
-  document.getElementById('dv-add').addEventListener('click', () => agregarFilaItem('dv-items', 'dv-total'));
-  document.getElementById('dv-confirmar').addEventListener('click', confirmarDevolucion);
-
-  document.getElementById('bf-cerrar').addEventListener('click', () => cerrarModal('modal-bonificacion'));
-  document.getElementById('bf-add').addEventListener('click', () => agregarFilaItem('bf-items', 'bf-total'));
-  document.getElementById('bf-confirmar').addEventListener('click', confirmarBonificacion);
-
-  document.getElementById('ds-cerrar').addEventListener('click', () => cerrarModal('modal-devstock'));
-  document.getElementById('ds-add').addEventListener('click', () => agregarFilaItem('ds-items', 'ds-total'));
-  document.getElementById('ds-confirmar').addEventListener('click', confirmarDevolucionStock);
 
   document.getElementById('pg-cerrar').addEventListener('click', () => cerrarModal('modal-pago'));
   document.getElementById('pg-tipo').addEventListener('change', actualizarEntidadPago);
@@ -486,6 +470,8 @@ function recalcularTotal(tbodyId, totalId){
   document.getElementById(totalId).textContent = money(total);
   document.getElementById(`${pfx}-comision`).textContent = money(comision);
   document.getElementById(`${pfx}-neto`).textContent = money(total - comision);
+  const w = ventanaDe(pfx);
+  if(w) actualizarTituloVentana(w);
 }
 
 // Al cambiar de vendedor cambian las comisiones de todas las filas.
@@ -512,51 +498,163 @@ function leerItems(tbodyId, err){
   return items;
 }
 
-// ===== 1. Cargar retiro / venta =====
+// ===== Ventanas de trabajo: retiro/venta, devolución, bonificación y devolución de stock =====
+// Cada botón abre una ventana NUEVA que no bloquea la pantalla: se pueden tener varias a la vez (por ejemplo, ventas
+// para dos vendedores al mismo tiempo), minimizarlas y volver a ellas. Cada ventana lleva su propio vendedor,
+// sus productos y sus totales, y se confirma o se cierra por separado.
 
-// pedido (opcional): pedido online que se pasa a venta. Entra con sus productos ya cargados y con el
-// vendedor que el cliente eligió en la tienda (o "Tienda Online" si no eligió ninguno). Se puede cambiar:
-// si es un cliente habitual se le asigna un vendedor, y la venta y el cliente pasan a su cuenta.
-function abrirModalRetiro(pedido = null){
+const MAX_VENTANAS = 4;
+const TIPOS_VENTANA = {
+  rt: { icono: '📦', titulo: 'Retiro / venta', color: '#c0392b' },
+  dv: { icono: '↩️', titulo: 'Devolución', color: '#e67e22' },
+  bf: { icono: '🎁', titulo: 'Bonificación', color: '#8e44ad' },
+  ds: { icono: '🔄', titulo: 'Devolución de stock', color: '#2E86DE' }
+};
+let ventanas = [];          // { pfx, tipo, el, pedido }
+let ventanaSeq = 0;
+let vendedoresPorTipo = {}; // tipo -> [{ id, nombre }]
+let clientesParaVenta = []; // clientes directos activos (para el retiro/venta)
+
+const TABLA_ITEMS = p => `
+  <table class="items-table">
+    <thead><tr><th>Producto</th><th>Cant.</th><th>Precio</th><th>Subtotal</th><th title="Subtotal menos la comisión del vendedor">Neto (- comisión)</th><th></th></tr></thead>
+    <tbody id="${p}-items"></tbody>
+  </table>
+  <button class="items-add" id="${p}-add" type="button">+ Agregar producto</button>`;
+
+const TOTALES = (p, etiquetaNeto) => `
+  <div class="items-total">Total: <span id="${p}-total">$0,00</span></div>
+  <div class="items-total-sub">Comisión del vendedor: <span id="${p}-comision">$0,00</span></div>
+  <div class="items-total items-neto">${etiquetaNeto}: <span id="${p}-neto">$0,00</span></div>
+  <div class="modal-err" id="${p}-err"></div>
+  <div class="vt-acciones"><button class="modal-cancel" id="${p}-cerrar" type="button">Cancelar</button><button class="modal-confirm" id="${p}-confirmar" type="button">Confirmar</button></div>`;
+
+function formularioVentana(tipo, p){
+  if(tipo === 'rt') return `
+    <div class="pedido-banner" id="${p}-pedido" style="display:none;"></div>
+    <label>Vendedor</label>
+    <select id="${p}-vendedor"></select>
+    <div id="${p}-cliente-wrap">
+      <label>Cliente (opcional)</label>
+      <select id="${p}-cliente"><option value="">Sin cliente asignado</option></select>
+    </div>
+    ${TABLA_ITEMS(p)}${TOTALES(p, 'Neto para la distribuidora')}`;
+  if(tipo === 'dv') return `
+    <label>Vendedor</label>
+    <select id="${p}-vendedor"></select>
+    <label>Motivo</label>
+    <input type="text" id="${p}-motivo" placeholder="Ej: producto vencido, no se vendió, etc.">
+    <p class="modal-hint">La mercadería devuelta no vuelve al stock. Se acredita en la cuenta del vendedor con su comisión restada.</p>
+    ${TABLA_ITEMS(p)}${TOTALES(p, 'Saldo a favor del vendedor')}`;
+  if(tipo === 'bf') return `
+    <label>Vendedor</label>
+    <select id="${p}-vendedor"></select>
+    <label>Descripción (opcional)</label>
+    <input type="text" id="${p}-descripcion" placeholder="Ej: producto en mal estado, descuento acordado, etc.">
+    <p class="modal-hint">La mercadería bonificada no vuelve al stock. Se acredita en la cuenta del vendedor con su comisión restada.</p>
+    ${TABLA_ITEMS(p)}${TOTALES(p, 'Saldo a favor del vendedor')}`;
+  return `
+    <label>Vendedor</label>
+    <select id="${p}-vendedor"></select>
+    <label>Motivo (opcional)</label>
+    <input type="text" id="${p}-motivo" placeholder="Ej: mercadería en buen estado que no se vendió">
+    <p class="modal-hint">La mercadería vuelve a ingresar al stock. Se acredita en la cuenta del vendedor con su comisión restada.</p>
+    ${TABLA_ITEMS(p)}${TOTALES(p, 'Saldo a favor del vendedor')}`;
+}
+
+const ventanaDe = pfx => ventanas.find(w => w.pfx === pfx);
+const campo = (w, nombre) => document.getElementById(`${w.pfx}-${nombre}`);
+
+// Título de la ventana (barra de arriba): tipo · vendedor · total. Sirve para distinguir varias ventanas abiertas.
+function actualizarTituloVentana(w){
+  const cfg = TIPOS_VENTANA[w.tipo];
+  const sel = campo(w, 'vendedor');
+  const vendedor = sel && sel.selectedOptions[0] ? sel.selectedOptions[0].textContent : '';
+  const total = campo(w, 'total');
+  const base = w.pedido ? `Pedido #${w.pedido.id} a venta` : cfg.titulo;
+  document.getElementById(`${w.pfx}-vtitulo`).innerHTML =
+    `${cfg.icono} ${esc(base)}${vendedor ? ` · <b>${esc(vendedor)}</b>` : ''} <span class="vt-monto">${total ? total.textContent : ''}</span>`;
+}
+
+function ventanaConDatos(w){
+  return [...w.el.querySelectorAll('.item-producto')].some(i => i.value);
+}
+
+function abrirVentana(tipo, pedido = null){
   if(pedido && !vendedorOnline){ alert('No se encontró el vendedor "Tienda Online".'); return; }
-  pedidoEnCurso = pedido;
-  const sel = document.getElementById('rt-vendedor');
-  sel.disabled = false;
+  if(ventanas.length >= MAX_VENTANAS){ alert(`Ya tenés ${MAX_VENTANAS} ventanas abiertas. Terminá o cerrá alguna para abrir otra.`); return; }
+  const cfg = TIPOS_VENTANA[tipo];
+  const pfx = `${tipo}${++ventanaSeq}`;
+  const el = document.createElement('section');
+  el.className = 'vt-win';
+  el.id = `win-${pfx}`;
+  el.style.setProperty('--vt-color', cfg.color);
+  el.innerHTML = `
+    <header class="vt-head">
+      <span class="vt-titulo" id="${pfx}-vtitulo"></span>
+      <button type="button" class="vt-btn vt-min" title="Minimizar / abrir">—</button>
+      <button type="button" class="vt-btn vt-x" title="Cerrar">✕</button>
+    </header>
+    <div class="vt-body">${formularioVentana(tipo, pfx)}</div>`;
+  document.getElementById('vt-dock').appendChild(el);
+
+  const w = { pfx, tipo, el, pedido };
+  ventanas.push(w);
+
+  // Vendedores (y clientes) de esta ventana
+  const sel = campo(w, 'vendedor');
+  sel.innerHTML = (vendedoresPorTipo[tipo] || []).map(v => `<option value="${esc(v.id)}">${esc(v.nombre)}</option>`).join('');
   sel.selectedIndex = 0;
-  if(pedido){
-    const elegido = pedido.vendedor_preferido_id && vendedores.find(v => v.id === pedido.vendedor_preferido_id && v.activo);
-    sel.value = String(elegido ? elegido.id : vendedorOnline.id);
+  if(tipo === 'rt'){
+    campo(w, 'cliente').innerHTML = '<option value="">Sin cliente asignado</option>' +
+      clientesParaVenta.map(c => `<option value="${c.id}">${esc(c.nombre)}</option>`).join('');
+    if(pedido){
+      const elegido = pedido.vendedor_preferido_id && vendedores.find(v => v.id === pedido.vendedor_preferido_id && v.activo);
+      sel.value = String(elegido ? elegido.id : vendedorOnline.id);
+      campo(w, 'cliente-wrap').style.display = 'none';
+      campo(w, 'confirmar').textContent = 'Pasar a venta';
+      const banner = campo(w, 'pedido');
+      banner.style.display = '';
+      const dir = pedido.cliente_direccion || pedido.cliente_localidad;
+      banner.textContent = `Pedido online de ${pedido.cliente_nombre || 'cliente sin nombre'}` +
+        `${pedido.cliente_tipo ? ' (' + (pedido.cliente_tipo === 'comercio' ? 'comercio' : 'particular') + ')' : ''}` +
+        `${pedido.cliente_cuit ? ' · CUIT/CUIL ' + pedido.cliente_cuit : ''}${dir ? ' · ' + dir : ''}. ` +
+        'Podés ajustar los productos antes de confirmar. Elegí el vendedor: si es un cliente habitual con vendedor, la venta va a su cuenta ' +
+        '(con su comisión) y el cliente queda en su cartera. Con "Tienda Online" no lleva comisión y el cliente queda como directo.';
+    }
   }
 
-  document.getElementById('rt-items').innerHTML = '';
-  resetTotales('rt');
-  document.getElementById('rt-err').textContent = '';
-  document.getElementById('rt-cliente').value = '';
-  document.getElementById('rt-cliente-wrap').style.display = pedido ? 'none' : '';
-  document.getElementById('rt-titulo').textContent = pedido ? `Pasar el pedido #${pedido.id} a venta` : '1. Cargar retiro / venta';
-  document.getElementById('rt-confirmar').textContent = pedido ? 'Pasar a venta' : 'Confirmar';
-  const banner = document.getElementById('rt-pedido');
-  banner.style.display = pedido ? '' : 'none';
-  if(pedido){
-    const dir = pedido.cliente_direccion || pedido.cliente_localidad;
-    banner.textContent = `Pedido online de ${pedido.cliente_nombre || 'cliente sin nombre'}` +
-      `${pedido.cliente_tipo ? ' (' + (pedido.cliente_tipo === 'comercio' ? 'comercio' : 'particular') + ')' : ''}` +
-      `${pedido.cliente_cuit ? ' · CUIT/CUIL ' + pedido.cliente_cuit : ''}${dir ? ' · ' + dir : ''}. ` +
-      'Podés ajustar los productos antes de confirmar. Elegí el vendedor: si es un cliente habitual con vendedor, la venta va a su cuenta ' +
-      '(con su comisión) y el cliente queda en su cartera. Con "Tienda Online" no lleva comisión y el cliente queda como directo.';
-  }
+  const tbodyId = `${pfx}-items`, totalId = `${pfx}-total`;
+  sel.addEventListener('change', () => { recalcularTodasLasFilas(tbodyId, totalId); actualizarTituloVentana(w); });
+  campo(w, 'add').addEventListener('click', () => agregarFilaItem(tbodyId, totalId));
+  campo(w, 'cerrar').addEventListener('click', () => cerrarVentana(w));
+  campo(w, 'confirmar').addEventListener('click', () => confirmarVentana(w));
+  el.querySelector('.vt-x').addEventListener('click', () => cerrarVentana(w));
+  el.querySelector('.vt-head').addEventListener('click', e => {
+    if(e.target.closest('.vt-x')) return;
+    el.classList.toggle('min');
+  });
 
   const items = pedido ? (pedido.ventas_items || []) : [];
-  if(items.length) items.forEach(it => agregarFilaItem('rt-items', 'rt-total', it));
-  else agregarFilaItem('rt-items', 'rt-total');
-  abrirModal('modal-retiro');
+  if(items.length) items.forEach(it => agregarFilaItem(tbodyId, totalId, it));
+  else agregarFilaItem(tbodyId, totalId);
+  actualizarTituloVentana(w);
+  document.getElementById('vt-dock').classList.add('con-ventanas');
+  el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
 }
 
-function cerrarRetiro(){
-  cerrarModal('modal-retiro');
-  pedidoEnCurso = null;
-  document.getElementById('rt-vendedor').disabled = false;
+async function cerrarVentana(w, forzar = false){
+  if(!forzar && ventanaConDatos(w) &&
+     !(await confirmDialog('¿Cerrar esta ventana y descartar lo que cargaste?', { confirmLabel: 'Cerrar y descartar' }))) return;
+  w.el.remove();
+  ventanas = ventanas.filter(x => x !== w);
+  if(!ventanas.length) document.getElementById('vt-dock').classList.remove('con-ventanas');
 }
+
+// Si hay algo cargado en alguna ventana, el navegador avisa antes de recargar o cerrar la pestaña.
+window.addEventListener('beforeunload', e => {
+  if(ventanas.some(ventanaConDatos)){ e.preventDefault(); e.returnValue = ''; }
+});
 
 // Tienda online -> "Pasar a venta" abre esta pantalla con ?pedido=<id>
 async function abrirPedidoDesdeUrl(){
@@ -571,124 +669,44 @@ async function abrirPedidoDesdeUrl(){
   if(error || !p){ alert(`No se encontró el pedido online #${id}.`); return; }
   if(p.estado === 'confirmada'){ alert(`El pedido #${id} ya está registrado como venta.`); return; }
   p.ventas_items.sort((a, b) => a.id - b.id);
-  abrirModalRetiro(p);
+  abrirVentana('rt', p);
 }
 
-async function confirmarRetiro(){
-  const vendedorId = document.getElementById('rt-vendedor').value;
-  const clienteId = document.getElementById('rt-cliente').value;
-  const err = document.getElementById('rt-err');
+// Cada tipo de ventana confirma con su propia operación de la base
+const OPERACIONES = {
+  dv: (w, vendedorId, items) => ['registrar_devolucion', { p_vendedor_id: vendedorId, p_venta_id: null, p_motivo: campo(w, 'motivo').value.trim(), p_items: items }],
+  bf: (w, vendedorId, items) => ['registrar_bonificacion', { p_vendedor_id: vendedorId, p_descripcion: campo(w, 'descripcion').value.trim(), p_items: items }],
+  ds: (w, vendedorId, items) => ['registrar_devolucion_stock', { p_vendedor_id: vendedorId, p_venta_id: null, p_motivo: campo(w, 'motivo').value.trim(), p_items: items }]
+};
+
+async function confirmarVentana(w){
+  const err = campo(w, 'err');
+  const btn = campo(w, 'confirmar');
   err.textContent = '';
 
+  const vendedorId = campo(w, 'vendedor').value;
   if(!vendedorId){ err.textContent = 'Elegí un vendedor.'; return; }
-  const items = leerItems('rt-items', err);
+  const items = leerItems(`${w.pfx}-items`, err);
   if(!items) return;
 
-  // Pedido online: se confirma el pedido existente (no se crea una venta nueva)
-  const { data: ventaId, error } = pedidoEnCurso
-    ? await sb.rpc('pasar_pedido_a_venta', { p_venta_id: pedidoEnCurso.id, p_items: items, p_vendedor_id: Number(vendedorId) })
-    : await sb.rpc('registrar_venta_manual', {
-        p_vendedor_id: Number(vendedorId), p_items: items, p_cliente_id: clienteId ? Number(clienteId) : null
-      });
-  if(error){ err.textContent = error.message; return; }
+  btn.disabled = true; // evita que un doble clic registre dos veces
+  let resultado;
+  if(w.tipo === 'rt'){
+    const clienteId = campo(w, 'cliente').value;
+    // Pedido online: se confirma el pedido existente (no se crea una venta nueva)
+    resultado = w.pedido
+      ? await sb.rpc('pasar_pedido_a_venta', { p_venta_id: w.pedido.id, p_items: items, p_vendedor_id: Number(vendedorId) })
+      : await sb.rpc('registrar_venta_manual', { p_vendedor_id: Number(vendedorId), p_items: items, p_cliente_id: clienteId ? Number(clienteId) : null });
+  } else {
+    const [fn, params] = OPERACIONES[w.tipo](w, Number(vendedorId), items);
+    resultado = await sb.rpc(fn, params);
+  }
+  btn.disabled = false;
+  if(resultado.error){ err.textContent = resultado.error.message; return; }
 
-  cerrarRetiro();
-  // Apenas se registra la venta se abre su resumen, con el botón para descargar la factura.
-  abrirResumenVenta(ventaId);
-  await cargarSaldos();
-}
-
-// ===== 2. Devoluciones =====
-
-function abrirModalDevolucion(){
-  document.getElementById('dv-items').innerHTML = '';
-  resetTotales('dv');
-  document.getElementById('dv-err').textContent = '';
-  document.getElementById('dv-motivo').value = '';
-  agregarFilaItem('dv-items', 'dv-total');
-  abrirModal('modal-devolucion');
-}
-
-async function confirmarDevolucion(){
-  const vendedorId = document.getElementById('dv-vendedor').value;
-  const motivo = document.getElementById('dv-motivo').value.trim();
-  const err = document.getElementById('dv-err');
-  err.textContent = '';
-
-  if(!vendedorId){ err.textContent = 'Elegí un vendedor.'; return; }
-  const items = leerItems('dv-items', err);
-  if(!items) return;
-
-  const { error } = await sb.rpc('registrar_devolucion', {
-    p_vendedor_id: Number(vendedorId), p_venta_id: null, p_motivo: motivo, p_items: items
-  });
-  if(error){ err.textContent = error.message; return; }
-
-  cerrarModal('modal-devolucion');
-  await cargarSaldos();
-}
-
-// ===== 3. Cargar bonificación =====
-// Igual que una devolución: lista de productos con cantidad y precio; el monto es el total.
-// No toca el stock (la mercadería bonificada no vuelve): solo baja la deuda del vendedor.
-
-function abrirModalBonificacion(){
-  document.getElementById('bf-items').innerHTML = '';
-  resetTotales('bf');
-  document.getElementById('bf-err').textContent = '';
-  document.getElementById('bf-descripcion').value = '';
-  agregarFilaItem('bf-items', 'bf-total');
-  abrirModal('modal-bonificacion');
-}
-
-async function confirmarBonificacion(){
-  const vendedorId = document.getElementById('bf-vendedor').value;
-  const descripcion = document.getElementById('bf-descripcion').value.trim();
-  const err = document.getElementById('bf-err');
-  err.textContent = '';
-
-  if(!vendedorId){ err.textContent = 'Elegí un vendedor.'; return; }
-  const items = leerItems('bf-items', err);
-  if(!items) return;
-
-  const { error } = await sb.rpc('registrar_bonificacion', {
-    p_vendedor_id: Number(vendedorId), p_descripcion: descripcion, p_items: items
-  });
-  if(error){ err.textContent = error.message; return; }
-
-  cerrarModal('modal-bonificacion');
-  await cargarSaldos();
-}
-
-// ===== 5. Devolución de stock =====
-// Como una devolución, pero la mercadería sí vuelve a ingresar al stock (mercadería en buen
-// estado). Se acredita en la cuenta del vendedor con su comisión restada.
-
-function abrirModalDevolucionStock(){
-  document.getElementById('ds-items').innerHTML = '';
-  resetTotales('ds');
-  document.getElementById('ds-err').textContent = '';
-  document.getElementById('ds-motivo').value = '';
-  agregarFilaItem('ds-items', 'ds-total');
-  abrirModal('modal-devstock');
-}
-
-async function confirmarDevolucionStock(){
-  const vendedorId = document.getElementById('ds-vendedor').value;
-  const motivo = document.getElementById('ds-motivo').value.trim();
-  const err = document.getElementById('ds-err');
-  err.textContent = '';
-
-  if(!vendedorId){ err.textContent = 'Elegí un vendedor.'; return; }
-  const items = leerItems('ds-items', err);
-  if(!items) return;
-
-  const { error } = await sb.rpc('registrar_devolucion_stock', {
-    p_vendedor_id: Number(vendedorId), p_venta_id: null, p_motivo: motivo, p_items: items
-  });
-  if(error){ err.textContent = error.message; return; }
-
-  cerrarModal('modal-devstock');
+  await cerrarVentana(w, true);
+  // Apenas se registra una venta se abre su resumen, con el botón para descargar la factura.
+  if(w.tipo === 'rt') abrirResumenVenta(resultado.data);
   await cargarSaldos();
 }
 
