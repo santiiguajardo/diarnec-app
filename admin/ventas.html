@@ -106,7 +106,7 @@
      tocando la barrita vuelve a abrirse. Solo una está abierta a la vez. */
   .vt-fondo{position:fixed;inset:0;background:rgba(18,36,54,.5);z-index:45;display:none;}
   .vt-fondo.on{display:block;}
-  .vt-dock{position:fixed;bottom:0;left:var(--vt-left,220px);right:0;z-index:47;display:flex;align-items:flex-end;flex-wrap:wrap;gap:10px;padding:0 170px 0 14px;pointer-events:none;} /* deja lugar al botón flotante del Asistente */
+  .vt-dock{position:fixed;bottom:0;left:var(--vt-left,220px);right:0;z-index:47;display:flex;align-items:flex-end;flex-wrap:wrap;gap:10px;padding:0 14px;pointer-events:none;}
   .vt-win{pointer-events:auto;display:flex;flex-direction:column;background:#fff;border:1px solid var(--line);border-top:5px solid var(--vt-color,#122436);}
   .vt-win.grande{position:fixed;z-index:46;inset:0;margin:auto;width:min(720px,94vw);height:fit-content;max-height:calc(100vh - 40px);border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.35);}
   html.vt-chicas .vt-win.grande{bottom:62px;max-height:calc(100vh - 40px - 62px);}
@@ -130,7 +130,7 @@
   .vt-acciones .modal-confirm{background:var(--green);color:#fff;}
   .vt-acciones .modal-confirm:disabled{opacity:.55;cursor:default;}
   html.vt-hay .admin-content{padding-bottom:70px;}
-  @media (max-width:900px){ .vt-dock{left:0;padding:0 130px 0 8px;} .vt-win.chico{max-width:none;flex:1 1 100%;} }
+  @media (max-width:900px){ .vt-dock{left:0;padding:0 8px;} .vt-win.chico{max-width:none;flex:1 1 100%;} }
 </style>
 </head>
 <body>
