@@ -3,6 +3,7 @@ import { requireAuth } from '../shared/auth-guard.js';
 import { mountLayout } from '../shared/layout.js';
 import { montarAlertasVencimiento } from '../shared/alertas-vencimiento.js';
 import { money } from '../shared/format.js';
+import { guardarPDF } from '../shared/guardar-pdf.js';
 import { confirmDialog, promptDialog } from '../shared/dialogs.js';
 import { esPorPeso, cantidadEsValida, mensajeCantidad } from '../shared/cantidad.js';
 import { abrirIngresoStock, abrirLectura } from '../shared/ingreso-stock.js';
@@ -796,7 +797,7 @@ async function exportarPDF(modo){
   });
 
   const sufijo = modo === 'color' ? 'Color' : 'Impresion';
-  doc.save(`${fecha.replace(/\//g,'-')}_Lista_DIARNEC_${sufijo}.pdf`);
+  guardarPDF(doc, `${fecha.replace(/\//g,'-')}_Lista_DIARNEC_${sufijo}.pdf`);
 }
 
 Object.assign(window, { invUpdate, invIngreso, invToggleActivo, invImagen, invEditar, mkEditar, mkBorrar, ctEditar, ctBorrar });
