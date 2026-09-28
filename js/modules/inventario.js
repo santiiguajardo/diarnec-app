@@ -202,7 +202,7 @@ async function cargarTodo(){
   const [{ data: mk }, { data: cat }, { data: prod }, { data: prv }] = await Promise.all([
     sb.from('marcas').select('id, nombre, color, proveedor_id').order('nombre'),
     sb.from('categorias').select('id, nombre, color, por_peso').order('nombre'),
-    sb.from('productos').select('id, marca_id, categoria_id, nombre, unidad, sku, precio_compra, precio_venta, stock_actual, stock_minimo, activo, imagen_url, descripcion, marcas(nombre, color), categorias(nombre, por_peso)').order('nombre'),
+    sb.from('productos').select('id, marca_id, categoria_id, nombre, unidad, sku, precio_compra, precio_venta, stock_actual, stock_minimo, activo, imagen_url, descripcion, etiqueta, marcas(nombre, color), categorias(nombre, por_peso)').order('nombre'),
     sb.from('proveedores').select('id, nombre, activo').order('nombre')
   ]);
   proveedores = prv || [];
@@ -453,7 +453,7 @@ function renderTabla(){
         </td>
         <td>${esc(p.categorias ? p.categorias.nombre : '')}</td>
         <td>${esc(p.marcas ? p.marcas.nombre : '')}</td>
-        <td class="wrap"><b>${esc(p.nombre)}</b></td>
+        <td class="wrap"><b>${esc(p.nombre)}</b>${p.etiqueta ? ` <span class="etq-panel etq-${p.etiqueta}">${p.etiqueta === 'oferta' ? 'OFERTA' : 'NUEVO'}</span>` : ''}</td>
         <td>${esc(p.unidad || '')}</td>
         <td><input class="cell-input" type="number" step="0.01" value="${p.precio_compra}" onchange="window.invUpdate(${p.id},'precio_compra',this.value)"></td>
         <td><span class="${margenClass}">${margenTxt}</span></td>
@@ -626,6 +626,7 @@ function invImagen(id){
   document.getElementById('imagen-producto-nombre').textContent = p.nombre;
   document.getElementById('imagen-url').value = p.imagen_url || '';
   document.getElementById('imagen-desc').value = p.descripcion || '';
+  document.getElementById('imagen-etiqueta').value = p.etiqueta || '';
   actualizarCuentaDesc();
   actualizarPreviewImagen();
   toggleModal('modal-imagen', true);
@@ -648,11 +649,13 @@ async function guardarImagen(){
   const antesDesc = p ? (p.descripcion || null) : null;
   const imagen_url = document.getElementById('imagen-url').value.trim();
   const descripcion = document.getElementById('imagen-desc').value.trim() || null;
-  const { error } = await sb.from('productos').update({ imagen_url, descripcion }).eq('id', imagenProductoId);
+  const antesEtiqueta = p ? (p.etiqueta || null) : null;
+  const etiqueta = document.getElementById('imagen-etiqueta').value || null;
+  const { error } = await sb.from('productos').update({ imagen_url, descripcion, etiqueta }).eq('id', imagenProductoId);
   if(error){ alert('No se pudo guardar: ' + error.message); return; }
   const id = imagenProductoId;
-  apilar(`se cambio la foto/descripcion de "${p ? p.nombre : id}"`, async () => {
-    const { error } = await sb.from('productos').update({ imagen_url: antes, descripcion: antesDesc }).eq('id', id);
+  apilar(`se cambio la foto/descripcion/etiqueta de "${p ? p.nombre : id}"`, async () => {
+    const { error } = await sb.from('productos').update({ imagen_url: antes, descripcion: antesDesc, etiqueta: antesEtiqueta }).eq('id', id);
     return error ? error.message : null;
   });
   toggleModal('modal-imagen', false);
