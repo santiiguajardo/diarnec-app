@@ -34,7 +34,7 @@ let comisionesMap = {}; // "vendedorId:marcaId" -> %
         </div>
         <div class="admin-section">
           <h3>Operaciones diarias</h3>
-          <p class="cta-hint" style="margin-bottom:8px;">Cada botón abre una ventana nueva: podés tener varias abiertas a la vez (por ejemplo, ventas para dos vendedores) y minimizarlas tocando su barra.</p>
+          <p class="cta-hint" style="margin-bottom:8px;">Se abre en grande. Si necesitás cargar dos o más a la vez (por ejemplo, ventas para dos vendedores), tocá <b>Achicar</b> (o abrí otra: la anterior se achica sola) y volvés a ella desde la barrita de abajo.</p>
           <div class="side-btns">
             <button class="side-btn btn-op1" id="btn-retiro"><span class="side-ico">📦</span>1. Cargar retiro / venta</button>
             <button class="side-btn btn-op2" id="btn-devolucion"><span class="side-ico">↩️</span>2. Devoluciones</button>
@@ -499,8 +499,9 @@ function leerItems(tbodyId, err){
 }
 
 // ===== Ventanas de trabajo: retiro/venta, devolución, bonificación y devolución de stock =====
-// Cada botón abre una ventana NUEVA que no bloquea la pantalla: se pueden tener varias a la vez (por ejemplo, ventas
-// para dos vendedores al mismo tiempo), minimizarlas y volver a ellas. Cada ventana lleva su propio vendedor,
+// Cada botón abre una ventana GRANDE (como un cuadro). Si hace falta cargar dos o más a la vez (por ejemplo, ventas para
+// dos vendedores), se la achica con "Achicar" —queda como una barrita abajo con el vendedor y el total— y se abre otra;
+// tocando la barrita vuelve a agrandarse. Solo una está grande a la vez. Cada ventana lleva su propio vendedor,
 // sus productos y sus totales, y se confirma o se cierra por separado.
 
 const MAX_VENTANAS = 4;
@@ -592,7 +593,7 @@ function abrirVentana(tipo, pedido = null){
   el.innerHTML = `
     <header class="vt-head">
       <span class="vt-titulo" id="${pfx}-vtitulo"></span>
-      <button type="button" class="vt-btn vt-min" title="Minimizar / abrir">—</button>
+      <button type="button" class="vt-btn vt-min" title="Achicar para poder cargar otra a la vez">⤓ Achicar</button>
       <button type="button" class="vt-btn vt-x" title="Cerrar">✕</button>
     </header>
     <div class="vt-body">${formularioVentana(tipo, pfx)}</div>`;
@@ -630,17 +631,41 @@ function abrirVentana(tipo, pedido = null){
   campo(w, 'cerrar').addEventListener('click', () => cerrarVentana(w));
   campo(w, 'confirmar').addEventListener('click', () => confirmarVentana(w));
   el.querySelector('.vt-x').addEventListener('click', () => cerrarVentana(w));
+  el.querySelector('.vt-min').addEventListener('click', () => (w.grande ? achicarVentana(w) : agrandarVentana(w)));
+  // Tocar la barrita de una ventana achicada la agranda
   el.querySelector('.vt-head').addEventListener('click', e => {
-    if(e.target.closest('.vt-x')) return;
-    el.classList.toggle('min');
+    if(w.grande || e.target.closest('.vt-btn')) return;
+    agrandarVentana(w);
   });
 
   const items = pedido ? (pedido.ventas_items || []) : [];
   if(items.length) items.forEach(it => agregarFilaItem(tbodyId, totalId, it));
   else agregarFilaItem(tbodyId, totalId);
   actualizarTituloVentana(w);
-  document.getElementById('vt-dock').classList.add('con-ventanas');
-  el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  agrandarVentana(w); // la nueva se abre grande; si había otra grande, se achica sola
+}
+
+// Solo una ventana está grande a la vez.
+function fijarTamano(w, grande){
+  w.grande = grande;
+  w.el.classList.toggle('grande', grande);
+  w.el.classList.toggle('chico', !grande);
+  const b = w.el.querySelector('.vt-min');
+  b.textContent = grande ? '⤓ Achicar' : '⤢ Agrandar';
+  b.title = grande ? 'Achicar para poder cargar otra a la vez' : 'Volver a agrandarla';
+}
+function agrandarVentana(w){
+  ventanas.forEach(x => { if(x !== w && x.grande) fijarTamano(x, false); });
+  fijarTamano(w, true);
+  refrescarVentanas();
+}
+function achicarVentana(w){
+  fijarTamano(w, false);
+  refrescarVentanas();
+}
+function refrescarVentanas(){
+  document.getElementById('vt-fondo').classList.toggle('on', ventanas.some(x => x.grande));
+  document.documentElement.classList.toggle('vt-hay', ventanas.length > 0);
 }
 
 async function cerrarVentana(w, forzar = false){
@@ -648,7 +673,7 @@ async function cerrarVentana(w, forzar = false){
      !(await confirmDialog('¿Cerrar esta ventana y descartar lo que cargaste?', { confirmLabel: 'Cerrar y descartar' }))) return;
   w.el.remove();
   ventanas = ventanas.filter(x => x !== w);
-  if(!ventanas.length) document.getElementById('vt-dock').classList.remove('con-ventanas');
+  refrescarVentanas();
 }
 
 // Si hay algo cargado en alguna ventana, el navegador avisa antes de recargar o cerrar la pestaña.
