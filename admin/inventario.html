@@ -81,6 +81,9 @@
   .btn-marca{background:#8e44ad;color:#fff;}      /* violeta: marcas */
   .btn-categoria{background:#2E86DE;color:#fff;}  /* azul: categorías */
   .btn-pdf{background:#16a085;color:#fff;}        /* verde agua: lista en PDF */
+  .btn-sacar{background:#fff;color:#C0392B;border:1.5px solid #E5A19A;}
+  .btn-sacar:hover{background:#FDECEA;}
+  .modal-box .modal-actions .modal-confirm.peligro{background:#C0392B;}
   .btn-eliminar{background:#C0392B;color:#fff;}
   .btn-eliminar:hover{background:#A93226;}
   .btn-stock{background:#fff;color:#17804F;border:1.5px solid #2BB673;} /* + stock: verde de contorno */
@@ -152,6 +155,31 @@
     <div class="adm-list"><table class="adm-tabla"><tbody id="ct-body"></tbody></table></div>
     <div class="adm-msg" id="ct-msg"></div>
     <div class="modal-actions"><button class="modal-cancel" id="ct-cerrar">Cerrar</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-baja">
+  <div class="modal-box">
+    <h3 id="baja-titulo">Sacar stock</h3>
+    <p id="baja-actual" style="font-size:13px;color:var(--muted);margin-bottom:6px;"></p>
+    <label id="baja-lbl">Cantidad que sale</label>
+    <input type="number" step="1" min="0" id="baja-cantidad" inputmode="decimal">
+    <label>Motivo</label>
+    <select id="baja-motivo">
+      <option>Merma / vencido</option>
+      <option>Rotura o mal estado</option>
+      <option>Diferencia de inventario (conteo)</option>
+      <option>Muestra o regalo</option>
+      <option>Uso propio</option>
+      <option>Otro</option>
+    </select>
+    <label>Detalle (opcional)</label>
+    <input type="text" id="baja-detalle" maxlength="150" placeholder="Ej: se cortó la cadena de frío">
+    <div class="adm-msg" id="baja-err"></div>
+    <div class="modal-actions">
+      <button class="modal-cancel" id="baja-cancel">Cancelar</button>
+      <button class="modal-confirm peligro" id="baja-confirmar">Sacar stock</button>
+    </div>
   </div>
 </div>
 

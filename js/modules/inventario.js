@@ -170,6 +170,8 @@ async function deshacer(){
   document.getElementById('btn-masiva').addEventListener('click', abrirMasiva);
   document.getElementById('btn-pdf').addEventListener('click', () => toggleModal('modal-pdf', true));
   document.getElementById('masiva-cancel').addEventListener('click', () => toggleModal('modal-masiva', false));
+  document.getElementById('baja-cancel').addEventListener('click', () => toggleModal('modal-baja', false));
+  document.getElementById('baja-confirmar').addEventListener('click', confirmarSacarStock);
   document.getElementById('masiva-confirm').addEventListener('click', aplicarMasiva);
   document.getElementById('pdf-cancel').addEventListener('click', () => toggleModal('modal-pdf', false));
   document.getElementById('pdf-color').addEventListener('click', () => exportarPDF('color'));
@@ -465,6 +467,7 @@ function renderTabla(){
           <span class="cant-badge">
             <b style="${bajoStock ? 'color:#C0392B;font-weight:700;' : ''}">${Number(p.stock_actual)}</b>
             <button class="btn-sm btn-stock" onclick="window.invIngreso(${p.id})" title="Sumar stock a este producto">+ Stock</button>
+            <button class="btn-sm btn-sacar" onclick="window.invSacar(${p.id})" title="Sacar stock de este producto (merma, rotura, diferencia de inventario...)">− Stock</button>
           </span>
         </td>
         <td class="row-btns">
@@ -626,6 +629,57 @@ async function invIngreso(id){
     p_cantidad: num, p_costo_unitario: p ? p.precio_compra : 0, p_proveedor_id: null
   });
   if(error){ alert('No se pudo registrar el ingreso: ' + error.message); return; }
+  await cargarTodo();
+}
+
+// Sacar stock a mano (merma, rotura, diferencia de inventario...). Descuenta de los lotes que vencen primero y queda
+// registrado en el Historial como movimiento de stock, con el motivo. Se puede deshacer desde el botón "Deshacer".
+let sacarProductoId = null;
+
+function invSacar(id){
+  const p = productos.find(p => p.id === id);
+  if(!p) return;
+  sacarProductoId = id;
+  document.getElementById('baja-titulo').textContent = `Sacar stock — ${p.nombre}`;
+  document.getElementById('baja-actual').textContent = `Stock actual: ${Number(p.stock_actual)}${p.unidad ? ' (' + p.unidad + ')' : ''}`;
+  document.getElementById('baja-lbl').textContent = esPorPeso(p) ? 'Cuántos kg salen' : 'Cuántas unidades salen (número entero)';
+  document.getElementById('baja-cantidad').value = '';
+  document.getElementById('baja-cantidad').step = esPorPeso(p) ? '0.001' : '1';
+  document.getElementById('baja-motivo').selectedIndex = 0;
+  document.getElementById('baja-detalle').value = '';
+  document.getElementById('baja-err').textContent = '';
+  toggleModal('modal-baja', true);
+  setTimeout(() => document.getElementById('baja-cantidad').focus(), 60);
+}
+
+async function confirmarSacarStock(){
+  const p = productos.find(p => p.id === sacarProductoId);
+  const err = document.getElementById('baja-err');
+  err.textContent = '';
+  if(!p) return;
+  const cant = parseFloat(String(document.getElementById('baja-cantidad').value).replace(',', '.'));
+  if(isNaN(cant) || cant <= 0){ err.textContent = 'Ingresá una cantidad mayor a 0.'; return; }
+  if(!cantidadEsValida(p, cant)){ err.textContent = mensajeCantidad(p); return; }
+  const stock = Number(p.stock_actual) || 0;
+  if(cant > stock && !(await confirmDialog(`Vas a sacar ${cant} pero hay ${stock} en stock: el stock va a quedar en ${stock - cant} (negativo).
+
+¿Sacar igual?`, { confirmLabel: 'Sacar igual' }))) return;
+
+  const motivo = document.getElementById('baja-motivo').value;
+  const detalle = document.getElementById('baja-detalle').value.trim();
+  const texto = detalle ? `${motivo}: ${detalle}` : motivo;
+  const btn = document.getElementById('baja-confirmar');
+  btn.disabled = true; // evita que un doble clic saque el stock dos veces
+  const { error } = await sb.rpc('registrar_ajuste_stock', { p_producto_id: p.id, p_cantidad_delta: -cant, p_motivo: texto });
+  btn.disabled = false;
+  if(error){ err.textContent = 'No se pudo sacar el stock: ' + error.message; return; }
+
+  const id = p.id;
+  apilar(`se sacaron ${cant} de "${p.nombre}" (${motivo})`, async () => {
+    const { error } = await sb.rpc('registrar_ajuste_stock', { p_producto_id: id, p_cantidad_delta: cant, p_motivo: `Deshacer: ${texto}` });
+    return error ? error.message : null;
+  });
+  toggleModal('modal-baja', false);
   await cargarTodo();
 }
 
@@ -820,4 +874,4 @@ async function exportarPDF(modo){
   guardarPDF(doc, `${fecha.replace(/\//g,'-')}_Lista_DIARNEC_${sufijo}.pdf`);
 }
 
-Object.assign(window, { invUpdate, invIngreso, invToggleActivo, invEliminar, invImagen, invEditar, mkEditar, mkBorrar, ctEditar, ctBorrar });
+Object.assign(window, { invUpdate, invIngreso, invSacar, invToggleActivo, invEliminar, invImagen, invEditar, mkEditar, mkBorrar, ctEditar, ctBorrar });
