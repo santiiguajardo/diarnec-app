@@ -257,7 +257,7 @@ async function cargarCatalogos(){
     sb.from('comisiones_vendedor_marca').select('vendedor_id, marca_id, comision_pct')
   ]);
   return {
-    vendedores: (vd || []).filter(v => !v.es_canal_online),
+    vendedores: (vd || []).map(v => v.es_canal_online ? { ...v, nombre: 'Tienda online' } : v),
     clientes: cl || [],
     proveedores: pv || [],
     productos: pr || [],

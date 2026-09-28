@@ -54,6 +54,14 @@ let comisionesMap = {}; // "vendedorId:marcaId" -> %
           </table>
         </div>
         <div class="admin-section">
+          <div class="cta-head"><h3>Cuenta corriente — Tienda online</h3></div>
+          <p class="cta-hint">Lo que la tienda te debe. Sus pagos se cargan con "4. Registrar pago" (Tienda online); devoluciones y bonificaciones con las opciones 2 y 3. <b>No hay devolución de stock para la tienda online.</b></p>
+          <table>
+            <thead><tr><th>Cuenta</th><th>Pedidos</th><th>Devol.</th><th>Bonif.</th><th>Pagos</th><th>Debe</th></tr></thead>
+            <tbody id="tabla-online"></tbody>
+          </table>
+        </div>
+        <div class="admin-section">
           <div class="cta-head"><h3>Cuentas corrientes — Clientes</h3><button class="btn-limpiar" id="btn-limpiar-c" title="Deja las cuentas en $0 desde ahora, sin borrar el historial">🧹 Limpiar cuentas corrientes</button></div>
           <p class="cta-hint">Tocá una cuenta para ver el detalle de sus movimientos.</p>
           <p style="font-size:12px;color:var(--muted);margin:-6px 0 12px;">Solo tus clientes directos (los de la cartera de cada vendedor los maneja el desde su panel).</p>
@@ -99,11 +107,12 @@ async function cargarBase(){
   const vendedoresActivos = vendedores.filter(v => v.activo);
   const clientesActivos = clientes.filter(c => c.activo);
 
-  // "Tienda Online" solo aparece en el retiro/venta (ahí se elige sola al pasar un pedido a venta);
-  // no tiene cuenta corriente ni comisión, así que no está en el resto de las operaciones.
+  // "Tienda Online" tiene su cuenta corriente (sin comisión) y entra en retiro/venta, devoluciones, bonificaciones
+  // y pagos. NO entra en "devolución de stock": lo que vuelve de la tienda online no se repone al stock.
   populateSelect('rt-vendedor', vendedorOnline ? [...vendedoresActivos, vendedorOnline] : vendedoresActivos, 'id', 'nombre');
-  populateSelect('dv-vendedor', vendedoresActivos, 'id', 'nombre');
-  populateSelect('bf-vendedor', vendedoresActivos, 'id', 'nombre');
+  const conOnline = vendedorOnline ? [...vendedoresActivos, { id: vendedorOnline.id, nombre: 'Tienda online' }] : vendedoresActivos;
+  populateSelect('dv-vendedor', conOnline, 'id', 'nombre');
+  populateSelect('bf-vendedor', conOnline, 'id', 'nombre');
   populateSelect('ds-vendedor', vendedoresActivos, 'id', 'nombre');
   populateSelect('cm-vendedor', vendedoresActivos, 'id', 'nombre', 'Elegí un vendedor');
 
@@ -148,6 +157,18 @@ async function cargarSaldos(){
           <td class="debe ${debe > 0.005 ? 'pos' : (debe < -0.005 ? '' : 'zero')}">${money(debe)}</td>
         </tr>`;
       }).join('');
+
+  const to = document.getElementById('tabla-online');
+  const ro = vendedorOnline ? (sv || []).find(r => r.vendedor_id === vendedorOnline.id) : null;
+  if(!ro){
+    to.innerHTML = `<tr><td colspan="6" class="empty-row">Sin datos de la tienda online.</td></tr>`;
+  } else {
+    const debe = Number(ro.retirado) - Number(ro.devuelto) - Number(ro.pagado) - Number(ro.bonificado);
+    to.innerHTML = `<tr class="cta-row" data-tipo="vendedor" data-id="${ro.vendedor_id}" title="Tocá para ver el detalle de la cuenta">
+      <td>Tienda online</td><td>${money(ro.retirado)}</td><td>${money(ro.devuelto)}</td><td>${money(ro.bonificado)}</td><td>${money(ro.pagado)}</td>
+      <td class="debe ${debe > 0.005 ? 'pos' : (debe < -0.005 ? '' : 'zero')}">${money(debe)}</td>
+    </tr>`;
+  }
 
   const tc = document.getElementById('tabla-clientes');
   const filasC = (sc || []).filter(r => clientesVisibles.has(r.cliente_id));
@@ -208,7 +229,7 @@ function wireBotones(){
   document.getElementById('pg-confirmar').addEventListener('click', confirmarPago);
 
   // Tocar una cuenta corriente abre su detalle (movimientos, productos y saldo)
-  ['tabla-vendedores', 'tabla-clientes'].forEach(id => document.getElementById(id).addEventListener('click', e => {
+  ['tabla-vendedores', 'tabla-online', 'tabla-clientes'].forEach(id => document.getElementById(id).addEventListener('click', e => {
     const tr = e.target.closest('tr.cta-row');
     if(!tr) return;
     abrirDetalleCuenta({ tipo: tr.dataset.tipo, id: Number(tr.dataset.id), nombre: tr.firstElementChild.textContent.trim() });
@@ -684,8 +705,10 @@ function abrirModalPago(){
 
 function actualizarEntidadPago(){
   const tipo = document.getElementById('pg-tipo').value;
-  document.getElementById('pg-entidad-label').textContent = tipo === 'vendedor' ? 'Vendedor' : 'Cliente';
-  const lista = tipo === 'vendedor' ? vendedores.filter(v => v.activo) : clientes.filter(c => c.activo);
+  document.getElementById('pg-entidad-label').textContent = tipo === 'vendedor' ? 'Vendedor' : (tipo === 'online' ? 'Cuenta' : 'Cliente');
+  const lista = tipo === 'vendedor' ? vendedores.filter(v => v.activo)
+    : tipo === 'online' ? (vendedorOnline ? [{ id: vendedorOnline.id, nombre: 'Tienda online' }] : [])
+    : clientes.filter(c => c.activo);
   populateSelect('pg-entidad', lista, 'id', 'nombre');
 }
 
@@ -698,11 +721,12 @@ async function confirmarPago(){
   const err = document.getElementById('pg-err');
   err.textContent = '';
 
-  if(!entidadId){ err.textContent = `Elegí ${tipo === 'vendedor' ? 'un vendedor' : 'un cliente'}.`; return; }
+  if(!entidadId){ err.textContent = `Elegí ${tipo === 'vendedor' ? 'un vendedor' : (tipo === 'online' ? 'la cuenta' : 'un cliente')}.`; return; }
   if(isNaN(monto) || monto <= 0){ err.textContent = 'Ingresá un monto válido.'; return; }
 
-  const tabla = tipo === 'vendedor' ? 'pagos_vendedores' : 'pagos_clientes';
-  const fila = tipo === 'vendedor'
+  // La tienda online es un "vendedor" fijo: sus pagos van a pagos_vendedores igual que los de cualquier vendedor.
+  const tabla = tipo === 'cliente' ? 'pagos_clientes' : 'pagos_vendedores';
+  const fila = tipo !== 'cliente'
     ? { vendedor_id: entidadId, monto, medio_pago, descripcion }
     : { cliente_id: entidadId, monto, medio_pago, descripcion };
 

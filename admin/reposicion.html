@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#122436">
+<link rel="apple-touch-icon" href="../img/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="../img/favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="../img/favicon-192.png">
+<title>DIARNEC — Reposición sugerida</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@0,62..125,100..900;1,62..125,100..900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js" integrity="sha384-JBR+x8blGwjDRO63aHCGiZMD4VNiTR4ZUGA+N6ZKLf3zNt1fK8IBpcgPaMrxqWBp" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="../css/tokens.css">
+<link rel="stylesheet" href="../css/shared.css">
+<link rel="stylesheet" href="../css/admin.css">
+<style>
+  .rp-params{display:flex;gap:18px;flex-wrap:wrap;margin-bottom:14px;}
+  .rp-params label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted);}
+  .rp-params select{padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:14px;background:#fff;}
+  .rp-resumen{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;}
+  .rp-card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 16px;}
+  .rp-card small{display:block;font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-bottom:4px;}
+  .rp-card b{font-size:22px;color:var(--navy);} .rp-card.rojo b{color:#C0392B;}
+  .rp-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px;}
+  .rp-head h3{margin:0;} .rp-cant{font-size:12px;font-weight:600;color:var(--muted);margin-left:6px;}
+  .rp-btns{display:flex;gap:8px;flex-wrap:wrap;}
+  .btn-wa{background:#25D366;color:#fff;border:none;}
+  .rp-aviso{font-size:12px;color:#9A5B00;background:#FFF4E5;border-radius:8px;padding:8px 10px;margin-bottom:10px;}
+  .rp-tabla{width:100%;border-collapse:collapse;}
+  .rp-tabla th,.rp-tabla td{padding:9px 8px;border-bottom:1px solid var(--line);text-align:left;font-size:13.5px;vertical-align:middle;}
+  .rp-tabla th{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);}
+  .rp-tabla .num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;}
+  .rp-tabla .rojo{color:#C0392B;font-weight:700;}
+  .rp-tabla tr.off{opacity:.45;}
+  .rp-sub{font-size:12px;color:var(--muted);}
+  .rp-qty{width:74px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;font-size:14px;text-align:right;}
+  .rp-tag{display:inline-block;padding:2px 9px;border-radius:100px;font-size:11px;font-weight:700;color:#fff;white-space:nowrap;}
+  .rp-tag.rojo{background:#C0392B;color:#fff;} .rp-tag.naranja{background:#e67e22;} .rp-tag.amarillo{background:#F5B301;color:#3F2900;}
+  @media (max-width:700px){ .rp-tabla th:nth-child(4),.rp-tabla td:nth-child(4),.rp-tabla th:nth-child(5),.rp-tabla td:nth-child(5){display:none;} }
+</style>
+</head>
+<body>
+
+<div id="app-shell"></div>
+
+<script type="module" src="../js/modules/reposicion.js"></script>
+</body>
+</html>

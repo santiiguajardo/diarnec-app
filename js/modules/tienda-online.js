@@ -3,16 +3,20 @@ import { requireAuth, getPerfil } from '../shared/auth-guard.js';
 import { mountLayout, refrescarAvisoPedidos } from '../shared/layout.js';
 import { money, dateTime } from '../shared/format.js';
 import { confirmDialog } from '../shared/dialogs.js';
+import { abrirDetalleCuenta } from '../shared/cuenta-detalle.js';
 import { createProductPicker } from '../shared/product-picker.js';
 import { ajustarInputCantidad, cantidadEsValida, mensajeCantidad } from '../shared/cantidad.js';
 
 const STORE_URL = 'https://santiiguajardo.github.io/diarnec-app/';
-const ESTADO_LABEL = { pendiente: 'Pendiente', confirmada: 'Venta confirmada', anulada: 'Cancelado' };
+const ESTADO_LABEL = { pendiente: 'Pendiente', confirmada: 'Venta confirmada', entregado: 'Entregado', anulada: 'Cancelado' };
 const ESTADOS = [
   { key: 'pendiente', label: 'Pendiente' },
   { key: 'confirmada', label: 'Pasar a venta' },
+  { key: 'entregado', label: 'Entregado' },
   { key: 'anulada', label: 'Cancelado' }
 ];
+// "Entregado" no es un estado de la venta: es una venta confirmada con fecha de entrega (ventas.entregado_at).
+const estadoUI = p => (p.estado === 'confirmada' && p.entregado_at ? 'entregado' : p.estado);
 
 let pedidos = [];
 let productos = [];
@@ -48,6 +52,20 @@ const TIPO_LABEL = { comercio: 'Comercio', particular: 'Particular' };
       </div>
     </div>
 
+    <div class="admin-section" id="cuenta-online">
+      <h3>Cuenta corriente de la tienda online</h3>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:12px;">
+        Lo que la tienda te debe: los pedidos pasados a venta, menos devoluciones, bonificaciones y el dinero que fuiste ingresando.
+        A diferencia de un vendedor, <b>la tienda online no devuelve stock</b>: sus devoluciones se cargan como devolución común (sin reponer mercadería).
+      </p>
+      <div class="cuenta-cards" id="cuenta-cards"><span style="color:var(--muted);font-size:13px;">Cargando...</span></div>
+      <div class="cuenta-acciones">
+        <button class="btn-sm btn-add" id="cuenta-ingresar">💵 Ingresar dinero</button>
+        <button class="btn-sm btn-blue" id="cuenta-detalle">Ver detalle de la cuenta</button>
+        <a class="btn-sm btn-grey" href="ventas.html" style="text-decoration:none;">↩️ Devoluciones y bonificaciones (en Ventas)</a>
+      </div>
+    </div>
+
     <div class="admin-section">
       <h3>Pedidos online</h3>
       <div class="pedidos-list" id="pedidos-list"></div>
@@ -71,6 +89,7 @@ const TIPO_LABEL = { comercio: 'Comercio', particular: 'Particular' };
   const perfil = await getPerfil();
   if(perfil && perfil.rol === 'admin') await iniciarConfig();
   await iniciarLogos();
+  await iniciarCuenta();
 
   const { data: vend } = await sb.from('vendedores').select('id, nombre');
   vendedoresMap = Object.fromEntries((vend || []).map(v => [v.id, v.nombre]));
@@ -87,7 +106,7 @@ function toggleModal(id, open){
 
 async function cargarPedidos(){
   const { data, error } = await sb.from('ventas')
-    .select('id, fecha, created_at, cliente_nombre, cliente_localidad, cliente_tipo, cliente_cuit, cliente_direccion, vendedor_preferido_id, total_neto, estado, ventas_items(producto_id, cantidad, precio_unitario, subtotal, productos(nombre))')
+    .select('id, fecha, created_at, cliente_nombre, cliente_localidad, cliente_tipo, cliente_cuit, cliente_direccion, vendedor_preferido_id, total_neto, estado, entregado_at, ventas_items(producto_id, cantidad, precio_unitario, subtotal, productos(nombre))')
     .eq('canal', 'online')
     .order('created_at', { ascending: false })
     .limit(100);
@@ -111,7 +130,7 @@ async function cargarPedidos(){
         <span class="cliente">${esc(p.cliente_nombre || 'Sin nombre')}${dondeEntregar(p) ? ' — ' + esc(dondeEntregar(p)) : ''}${p.cliente_tipo ? ` <span class="tipo-tag tipo-${p.cliente_tipo}">${TIPO_LABEL[p.cliente_tipo]}</span>` : ''}</span>
         <span class="fecha">${dateTime(p.created_at)}</span>
         <span class="total">${money(p.total_neto)}</span>
-        <span class="badge ${p.estado}">${ESTADO_LABEL[p.estado] || p.estado}</span>
+        <span class="badge ${estadoUI(p)}">${ESTADO_LABEL[estadoUI(p)] || p.estado}</span>
       </summary>
       <div class="pedido-items">
         <div class="pedido-datos">
@@ -135,7 +154,7 @@ async function cargarPedidos(){
         <div class="pedido-acciones">
           <div class="estado-seg" role="group" aria-label="Estado del pedido">
             ${ESTADOS.map(s => `
-              <button class="seg seg-${s.key} ${p.estado === s.key ? 'active' : ''}" data-accion="estado" data-estado="${s.key}" data-id="${p.id}">${s.label}</button>`).join('')}
+              <button class="seg seg-${s.key} ${estadoUI(p) === s.key ? 'active' : ''}" data-accion="estado" data-estado="${s.key}" data-id="${p.id}">${s.label}</button>`).join('')}
           </div>
           <span class="acciones-sep"></span>
           <button class="btn-sm btn-blue" data-accion="comprobante" data-id="${p.id}">🧾 Comprobante</button>
@@ -164,6 +183,54 @@ async function iniciarConfig(){
     const { error } = await sb.rpc('guardar_config_tienda', { p_recargo: recargo, p_minimo: minimo });
     msg.className = 'cfg-msg ' + (error ? 'err' : 'ok');
     msg.textContent = error ? error.message : 'Guardado. Ya se aplica en la tienda.';
+  });
+}
+
+// ===== Cuenta corriente de la tienda online =====
+// Es la cuenta del vendedor fijo "Tienda Online". Los pedidos que el cliente asigna a un vendedor van a la cuenta
+// de ese vendedor; acá queda lo que se vende directo desde la tienda.
+
+let vendedorOnlineId = null;
+
+async function cargarCuenta(){
+  const cont = document.getElementById('cuenta-cards');
+  if(!vendedorOnlineId){ cont.textContent = 'No se encontró la cuenta de la tienda online.'; return; }
+  const { data, error } = await sb.from('vendedores_saldo').select('*').eq('vendedor_id', vendedorOnlineId).maybeSingle();
+  if(error || !data){ cont.textContent = 'No se pudo cargar la cuenta: ' + (error ? error.message : 'sin datos'); return; }
+  const debe = Number(data.retirado) - Number(data.devuelto) - Number(data.pagado) - Number(data.bonificado);
+  const card = (t, v, cls = '') => `<div class="cta-card ${cls}"><small>${t}</small><b>${money(v)}</b></div>`;
+  cont.innerHTML = card('Pedidos (ventas)', data.retirado) + card('Devoluciones', data.devuelto) + card('Bonificaciones', data.bonificado) +
+    card('Dinero ingresado', data.pagado) + card('Debe', debe, debe > 0.005 ? 'debe-pos' : 'debe-cero');
+}
+
+async function iniciarCuenta(){
+  const { data } = await sb.from('vendedores').select('id').eq('es_canal_online', true).maybeSingle();
+  vendedorOnlineId = data ? data.id : null;
+  await cargarCuenta();
+  document.getElementById('cuenta-detalle').addEventListener('click', () => {
+    if(vendedorOnlineId) abrirDetalleCuenta({ tipo: 'vendedor', id: vendedorOnlineId, nombre: 'Tienda online' });
+  });
+  document.getElementById('cuenta-ingresar').addEventListener('click', () => {
+    document.getElementById('ing-monto').value = '';
+    document.getElementById('ing-descripcion').value = '';
+    document.getElementById('ing-medio').value = 'efectivo';
+    document.getElementById('ing-err').textContent = '';
+    toggleModal('modal-ingreso', true);
+  });
+  document.getElementById('ing-cancelar').addEventListener('click', () => toggleModal('modal-ingreso', false));
+  document.getElementById('ing-confirmar').addEventListener('click', async () => {
+    const err = document.getElementById('ing-err');
+    err.textContent = '';
+    const monto = parseFloat(document.getElementById('ing-monto').value);
+    if(!vendedorOnlineId){ err.textContent = 'No se encontró la cuenta de la tienda online.'; return; }
+    if(isNaN(monto) || monto <= 0){ err.textContent = 'Ingresá un monto válido.'; return; }
+    const { error } = await sb.from('pagos_vendedores').insert({
+      vendedor_id: vendedorOnlineId, monto, medio_pago: document.getElementById('ing-medio').value,
+      descripcion: document.getElementById('ing-descripcion').value.trim()
+    });
+    if(error){ err.textContent = error.message; return; }
+    toggleModal('modal-ingreso', false);
+    await cargarCuenta();
   });
 }
 
@@ -227,7 +294,22 @@ async function onClickPedidos(e){
   if(accion === 'estado'){
     const nuevo = btn.dataset.estado;
     const p = pedidos.find(p => p.id === id);
-    if(!p || p.estado === nuevo) return;
+    if(!p || estadoUI(p) === nuevo) return;
+
+    // Entregado: solo cuando el pedido ya es venta. "Pasar a venta" estando entregado = deshacer la entrega.
+    if(nuevo === 'entregado'){
+      if(p.estado !== 'confirmada'){ alert('Primero pasá el pedido a venta y después marcalo como entregado.'); return; }
+      const { error } = await sb.rpc('marcar_pedido_entregado', { p_venta_id: id, p_entregado: true });
+      if(error){ alert('No se pudo marcar como entregado: ' + error.message); return; }
+      await cargarPedidos();
+      return;
+    }
+    if(nuevo === 'confirmada' && p.estado === 'confirmada'){
+      const { error } = await sb.rpc('marcar_pedido_entregado', { p_venta_id: id, p_entregado: false });
+      if(error){ alert('No se pudo deshacer la entrega: ' + error.message); return; }
+      await cargarPedidos();
+      return;
+    }
 
     // Pasar a venta se hace en el panel de Ventas, con los productos del pedido ya cargados
     // y el vendedor "Tienda Online" elegido; ahí se confirma (y recién ahí se descuenta el stock).
