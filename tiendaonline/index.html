@@ -124,6 +124,31 @@
   #tipo-comercio{--c:#17A06B;--bg:#E4F6EC;}
   #tipo-particular{--c:#2E86DE;--bg:#E6F0FB;}
   .tipo-note{font-size:12px;color:var(--muted);margin:-4px 0 10px;line-height:1.35;}
+  /* barra fija: buscador + categorías */
+  .sticky-bar{position:sticky;top:var(--hdr,64px);z-index:15;margin-top:8px;background:var(--paper);border-bottom:1px solid var(--line);}
+  .sticky-bar .filters{position:static;margin-top:0;border-bottom:none;padding-top:10px;}
+  .searchrow{padding:12px 24px 0;max-width:1100px;margin:0 auto;}
+  .searchbox{width:100%;max-width:460px;display:block;padding:10px 14px 10px 40px;border:1px solid var(--line);border-radius:100px;font-size:14px;font-family:inherit;color:var(--ink);
+    background:#fff url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%237A8B99' stroke-width='2.4' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M20 20l-3.5-3.5'/%3E%3C/svg%3E") no-repeat 14px center;}
+  .searchbox:focus{outline:2px solid var(--green);outline-offset:1px;}
+  @media (max-width:640px){ .searchrow{padding:10px 16px 0;} .searchbox{max-width:none;} }
+  .chip.chip-oferta{border-color:#E5383B;color:#E5383B;font-weight:700;}
+  .chip.chip-nuevo{border-color:#2E86DE;color:#2E86DE;font-weight:700;}
+  .chip.chip-oferta.active{background:#E5383B;color:#fff;} .chip.chip-nuevo.active{background:#2E86DE;color:#fff;}
+  /* etiquetas Oferta / Nuevo */
+  .thumbwrap{position:relative;}
+  .etq{display:inline-block;padding:3px 10px;border-radius:100px;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#fff;font-family:var(--display);line-height:1.3;}
+  .etq.oferta{background:#E5383B;} .etq.nuevo{background:#2E86DE;}
+  .thumbwrap .etq{position:absolute;top:8px;left:8px;box-shadow:0 2px 6px rgba(0,0,0,.25);}
+  .etq.inline{margin-left:8px;vertical-align:middle;font-size:10px;padding:2px 8px;}
+  /* repetir último pedido */
+  .repeat-bar{display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;padding:14px 24px 0;}
+  .repeat-btn{border:2px solid var(--green);background:#EAF7F0;color:#0F6B40;font-weight:700;font-size:14px;padding:10px 18px;border-radius:100px;cursor:pointer;font-family:inherit;}
+  .repeat-btn:hover{background:#D9F1E5;}
+  .repeat-forget{border:none;background:none;color:var(--muted);font-size:12px;text-decoration:underline;cursor:pointer;font-family:inherit;}
+  .drawer-empty .repeat-btn{margin-top:12px;font-size:13px;}
+  .toast-msg{position:fixed;left:50%;top:16px;transform:translate(-50%,-20px);background:var(--navy);color:#fff;padding:11px 18px;border-radius:12px;font-size:13px;max-width:min(92vw,420px);text-align:center;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;z-index:200;box-shadow:0 8px 24px rgba(0,0,0,.25);}
+  .toast-msg.show{opacity:1;transform:translate(-50%,0);}
   .peso-note{display:none;margin:2px 0 10px;padding:11px 12px;border-radius:10px;background:#FFF1C2;border:2px solid #F5B301;color:#5C3B00;font-size:13px;line-height:1.4;}
   .peso-note b{display:block;font-family:var(--display);font-size:14px;margin-bottom:3px;color:#3F2900;}
   .peso-note span{display:block;margin-top:5px;font-size:12px;color:#7A5200;}
@@ -186,6 +211,10 @@
     <h1><span class="br">Armá tu carrito</span> <em class="br">y coordinamos por WhatsApp<img class="wa-ico" src="img/whatsapp.png" alt="" width="40" height="40"></em></h1>
     <p>Venta mayorista de productos alimenticios de calidad y alta rotación</p>
   </div>
+  <div class="repeat-bar" id="repeat-bar" hidden>
+    <button type="button" class="repeat-btn" onclick="repetirPedido()">🔁 <span id="repeat-label">Repetir mi último pedido</span></button>
+    <button type="button" class="repeat-forget" onclick="olvidarDatos()">Olvidar mis datos</button>
+  </div>
   <div class="toolbar">
     <div class="view-toggle" role="group" aria-label="Vista">
       <button type="button" id="view-grilla" onclick="setView('grilla')">▦ Grilla</button>
@@ -201,7 +230,12 @@
       </select>
     </label>
   </div>
-  <div class="filters" id="filters"></div>
+  <div class="sticky-bar">
+    <div class="searchrow">
+      <input type="search" id="search" class="searchbox" placeholder="Buscar producto o marca..." autocomplete="off" aria-label="Buscar producto o marca" oninput="setQuery(this.value)">
+    </div>
+    <div class="filters" id="filters"></div>
+  </div>
   <main><div class="grid" id="grid"></div></main>
 </div>
 
@@ -215,6 +249,7 @@
   <div style="margin-top:6px;">Necochea, Quequén, Juan N. Fernández, La Dulce, San Cayetano · Reparto de lunes a sábado</div>
 </footer>
 
+<div class="toast-msg" id="toast" role="status" aria-live="polite"></div>
 <div class="overlay" id="overlay" onclick="closeCart()"></div>
 <div class="drawer" id="drawer">
   <div class="drawer-head"><h2>Tu pedido</h2><button onclick="closeCart()">&times;</button></div>
@@ -290,19 +325,41 @@
     return ["Todos", ...cats];
   }
 
+  // Filtros especiales (solo aparecen si hay productos con esa etiqueta)
+  const ESPECIALES = { '@oferta': { tag: 'oferta', label: '🔥 Ofertas', cls: 'chip-oferta' }, '@nuevo': { tag: 'nuevo', label: '✨ Nuevos', cls: 'chip-nuevo' } };
+
   function renderFilters(){
     const el = document.getElementById('filters');
-    el.innerHTML = categories().map(c =>
+    const especiales = Object.entries(ESPECIALES).filter(([, e]) => products.some(p => p.tag === e.tag))
+      .map(([key, e]) => `<button class="chip ${e.cls} ${key===activeCat?'active':''}" data-cat="${key}" onclick="setCat(this.dataset.cat)">${e.label}</button>`);
+    el.innerHTML = especiales.join('') + categories().map(c =>
       `<button class="chip ${c===activeCat?'active':''}" data-cat="${esc(c)}" onclick="setCat(this.dataset.cat)">${esc(c)}</button>`
     ).join('');
   }
   function setCat(c){ activeCat = c; renderFilters(); renderGrid(); }
 
+  // Buscador: sin importar mayúsculas ni tildes, y todas las palabras tienen que aparecer (nombre, marca, categoría o descripción).
+  const norm = s => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  let query = '';
+  function setQuery(v){ query = String(v || '').trim(); renderGrid(); }
+
+  const etiquetaHtml = (p, inline) => p.tag ? `<span class="etq ${p.tag}${inline ? ' inline' : ''}">${p.tag === 'oferta' ? 'Oferta' : 'Nuevo'}</span>` : '';
+
   function renderGrid(){
     const el = document.getElementById('grid');
-    const base = activeCat === "Todos" ? products : products.filter(p => p.cat === activeCat);
+    let base = products;
+    if(ESPECIALES[activeCat]) base = base.filter(p => p.tag === ESPECIALES[activeCat].tag);
+    else if(activeCat !== "Todos") base = base.filter(p => p.cat === activeCat);
+    const palabras = norm(query).split(/\s+/).filter(Boolean);
+    if(palabras.length) base = base.filter(p => palabras.every(w => p.hay.includes(w)));
     const list = [...base].sort(SORTERS[sortBy] || SORTERS.price_desc);
-    if(list.length === 0){ el.innerHTML = `<div class="empty-row">No hay productos en esta categoría.</div>`; return; }
+    if(list.length === 0){
+      el.className = 'grid';
+      el.innerHTML = palabras.length
+        ? `<div class="empty-row">No encontramos productos para «${esc(query)}»${activeCat !== 'Todos' ? ` en esta categoría. <button class="repeat-forget" onclick="setCat('Todos')">Buscar en todas</button>` : '.'}</div>`
+        : `<div class="empty-row">No hay productos en esta categoría.</div>`;
+      return;
+    }
     el.className = 'grid' + (viewMode === 'lista' ? ' list' : '');
     el.innerHTML = list.map(p => {
       const qty = cart[p.id] || 0;
@@ -318,17 +375,17 @@
         ${p.image
           ? `<img class="rthumb" src="${esc(p.image)}" alt="${esc(p.name)}" data-color="${esc(p.color)}" data-cat="${esc(p.cat)}" onerror="imgFallback(this)">`
           : `<div class="rthumb" style="background:${esc(p.color)}">${esc(p.cat)}</div>`}
-        <div><div class="name">${esc(p.name)}</div><div class="unit">${esc(p.brand)}${p.unit ? ' · ' + esc(p.unit) : ''}</div>${p.desc ? `<div class="desc">${esc(p.desc)}</div>` : ''}</div>
+        <div><div class="name">${esc(p.name)}${etiquetaHtml(p, true)}</div><div class="unit">${esc(p.brand)}${p.unit ? ' · ' + esc(p.unit) : ''}</div>${p.desc ? `<div class="desc">${esc(p.desc)}</div>` : ''}</div>
         <div class="prices">${precios}</div>
         <div class="ctrl">${control}</div>
       </div>`;
       }
       return `
       <div class="card">
-        ${p.image
-          ? `<img src="${esc(p.image)}" alt="${esc(p.name)}" data-color="${esc(p.color)}" data-cat="${esc(p.cat)}" style="aspect-ratio:1/1;width:100%;border-radius:10px;object-fit:cover;" onerror="imgFallback(this)">`
+        <div class="thumbwrap">${p.image
+          ? `<img src="${esc(p.image)}" alt="${esc(p.name)}" data-color="${esc(p.color)}" data-cat="${esc(p.cat)}" style="aspect-ratio:1/1;width:100%;border-radius:10px;object-fit:cover;display:block;" onerror="imgFallback(this)">`
           : `<div class="thumb" style="background:${esc(p.color)}">${esc(p.cat)}</div>`
-        }
+        }${etiquetaHtml(p, false)}</div>
         <div class="name">${esc(p.name)}</div>
         <div class="unit">${esc(p.brand)}${p.unit ? ' · ' + esc(p.unit) : ''}</div>
         ${p.desc ? `<div class="desc">${esc(p.desc)}</div>` : ''}
@@ -357,7 +414,7 @@
     document.getElementById('cart-count').textContent = count;
     const el = document.getElementById('drawer-items');
     if(items.length === 0){
-      el.innerHTML = `<div class="drawer-empty">Todavía no agregaste productos.</div>`;
+      el.innerHTML = `<div class="drawer-empty">Todavía no agregaste productos.${leerUltimoPedido() ? `<br><button type="button" class="repeat-btn" onclick="repetirPedido()">🔁 Repetir mi último pedido</button>` : ''}</div>`;
     } else {
       el.innerHTML = items.map(([id,qty]) => {
         const p = products.find(p => p.id == id);
@@ -496,10 +553,11 @@
     const url = `https://wa.me/${numero}?text=${encodeURIComponent(lines.join('\n'))}`;
     if(win) win.location.href = url; else window.location.href = url;
 
+    // Se recuerda el pedido y los datos de entrega en ESTE dispositivo para poder repetirlo la próxima vez.
+    guardarUltimoPedido(items, { tipo, nombre, cuit: tipo === 'comercio' ? cuit : '', dir, vendId: vendedor ? String(vendedor.id) : '' });
     Object.keys(cart).forEach(k => delete cart[k]);
-    ['shop-name', 'shop-cuit', 'shop-dir', 'shop-vend'].forEach(id => { document.getElementById(id).value = ''; });
     await loadProducts();
-    renderFilters(); renderGrid(); renderCart(); closeCart();
+    renderFilters(); renderGrid(); renderCart(); renderRepetir(); closeCart();
   }
 
   async function loadConfig(){
@@ -519,7 +577,7 @@
   async function loadProducts(){
     const { data, error } = await sb
       .from('productos')
-      .select('id, nombre, unidad, precio_venta, imagen_url, descripcion, marcas(nombre), categorias(nombre, color)')
+      .select('id, nombre, unidad, precio_venta, imagen_url, descripcion, etiqueta, marcas(nombre), categorias(nombre, color)')
       .eq('activo', true)
       .order('id');
     if(error){ console.error('Error cargando productos:', error); return; }
@@ -530,11 +588,13 @@
       price: p.precio_venta,
       image: p.imagen_url,
       desc: p.descripcion || '',
+      tag: p.etiqueta === 'oferta' || p.etiqueta === 'nuevo' ? p.etiqueta : '',
       brand: p.marcas ? p.marcas.nombre : '',
       cat: p.categorias ? p.categorias.nombre : '',
       pesable: /\bpor\s*kg\b/i.test(p.unidad || ''), // la unidad "por kg" (no la categoría: hay cajas dentro de Quesos y "por kg" dentro de Snacks)
       color: p.categorias ? p.categorias.color : '#2BB673'
     }));
+    products.forEach(p => { p.hay = norm([p.name, p.brand, p.cat, p.desc, p.tag].join(' ')); });
   }
 
   // Franja de logos de marcas: solo las que tienen logo cargado (Panel → Tienda online → Logos de las marcas).
@@ -566,9 +626,87 @@
     if(!document.querySelector('#marquee-track .marquee-item')) document.getElementById('marcas-band').hidden = true;
   }
 
+  // ===== Repetir el último pedido =====
+  // Se guarda solo en el navegador de la persona (localStorage): nada de esto viaja ni se guarda en el servidor.
+  const KEY_PEDIDO = 'diarnec_ultimo_pedido';
+
+  function leerUltimoPedido(){
+    try {
+      const d = JSON.parse(localStorage.getItem(KEY_PEDIDO) || 'null');
+      if(!d || !Array.isArray(d.items)) return null;
+      const items = d.items.filter(x => Array.isArray(x) && Number.isInteger(x[0]) && Number.isInteger(x[1]) && x[1] > 0 && x[1] < 1000).slice(0, 80);
+      if(!items.length) return null;
+      const txt = (v, n) => String(v ?? '').slice(0, n);
+      return {
+        items, tipo: d.tipo === 'comercio' || d.tipo === 'particular' ? d.tipo : null,
+        nombre: txt(d.nombre, 120), cuit: txt(d.cuit, 14), dir: txt(d.dir, 200), vendId: txt(d.vendId, 12), fecha: Number(d.fecha) || 0
+      };
+    } catch(e){ return null; }
+  }
+
+  function guardarUltimoPedido(items, datos){
+    try {
+      localStorage.setItem(KEY_PEDIDO, JSON.stringify({
+        items: items.map(([id, qty]) => [Number(id), Number(qty)]),
+        tipo: datos.tipo, nombre: datos.nombre, cuit: datos.cuit, dir: datos.dir, vendId: datos.vendId, fecha: Date.now()
+      }));
+    } catch(e){ /* sin storage: simplemente no se recuerda */ }
+  }
+
+  function renderRepetir(){
+    const d = leerUltimoPedido();
+    const bar = document.getElementById('repeat-bar');
+    if(!d){ bar.hidden = true; return; }
+    const f = new Date(d.fecha);
+    const cuando = d.fecha ? ` · ${String(f.getDate()).padStart(2, '0')}/${String(f.getMonth() + 1).padStart(2, '0')}` : '';
+    document.getElementById('repeat-label').textContent = `Repetir mi último pedido (${d.items.length} producto${d.items.length === 1 ? '' : 's'}${cuando})`;
+    bar.hidden = false;
+  }
+
+  // Completa los datos de entrega solo en los campos que están vacíos
+  function completarDatos(d){
+    const poner = (id, v) => { const el = document.getElementById(id); if(el && !el.value && v) el.value = v; };
+    poner('shop-name', d.nombre); poner('shop-cuit', d.cuit); poner('shop-dir', d.dir);
+    if(d.vendId && tipo === 'comercio'){
+      const sel = document.getElementById('shop-vend');
+      if(!sel.value && [...sel.options].some(o => o.value === d.vendId)) sel.value = d.vendId;
+    }
+  }
+
+  let toastTimer = null;
+  function toast(msg){
+    const el = document.getElementById('toast');
+    el.textContent = msg; el.classList.add('show');
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('show'), 4500);
+  }
+
+  function repetirPedido(){
+    const d = leerUltimoPedido();
+    if(!d){ renderRepetir(); return; }
+    let faltan = 0;
+    d.items.forEach(([id, qty]) => {
+      const p = products.find(x => x.id === id);
+      if(!p){ faltan++; return; }
+      cart[id] = (cart[id] || 0) + qty;
+    });
+    if(!tipo && d.tipo) setTipo(d.tipo);
+    completarDatos(d);
+    renderGrid(); renderCart(); openCart();
+    toast(faltan
+      ? `Listo, agregamos tu último pedido. ${faltan} producto${faltan === 1 ? '' : 's'} ya no está${faltan === 1 ? '' : 'n'} disponible${faltan === 1 ? '' : 's'}. Se usan los precios de hoy.`
+      : 'Listo, agregamos tu último pedido. Se usan los precios de hoy: revisalo antes de finalizar.');
+  }
+
+  function olvidarDatos(){
+    try { localStorage.removeItem(KEY_PEDIDO); } catch(e){ /* nada */ }
+    ['shop-name', 'shop-cuit', 'shop-dir', 'shop-vend'].forEach(id => { document.getElementById(id).value = ''; });
+    renderRepetir(); renderCart();
+    toast('Listo, borramos tus datos de este dispositivo.');
+  }
+
   // Los <button onclick="..."> del HTML necesitan estas funciones como globales
   // (un <script type="module"> no las expone en window por defecto).
-  Object.assign(window, { setCat, setSort, setView, setTipo, addToCart, changeQty, openCart, closeCart, checkout, imgFallback, quitarLogo });
+  Object.assign(window, { setCat, setSort, setView, setTipo, addToCart, changeQty, openCart, closeCart, checkout, imgFallback, quitarLogo, setQuery, repetirPedido, olvidarDatos });
 
   // Las categorías quedan fijas debajo del encabezado al scrollear; el alto del encabezado varía (se acomoda en celular).
   function ajustarEncabezado(){
@@ -586,6 +724,9 @@
     renderFilters();
     renderGrid();
     renderCart();
+    const ultimo = leerUltimoPedido();
+    if(ultimo) completarDatos(ultimo); // los datos de entrega quedan completados para el próximo pedido
+    renderRepetir();
     loadMarcas();
   })();
 </script>
