@@ -34,7 +34,7 @@ let comisionesMap = {}; // "vendedorId:marcaId" -> %
         </div>
         <div class="admin-section">
           <h3>Operaciones diarias</h3>
-          <p class="cta-hint" style="margin-bottom:8px;">Se abre a pantalla completa. Si necesitás cargar dos o más a la vez (por ejemplo, ventas para dos vendedores), tocá <b>Minimizar</b> (o abrí otra: la anterior se minimiza sola) y volvés a ella desde la barrita de abajo.</p>
+          <p class="cta-hint" style="margin-bottom:8px;">Se abre en un recuadro. Si necesitás cargar dos o más a la vez (por ejemplo, ventas para dos vendedores), tocá <b>Minimizar</b> (o abrí otra: la anterior se minimiza sola) y volvés a ella desde la barrita de abajo.</p>
           <div class="side-btns">
             <button class="side-btn btn-op1" id="btn-retiro"><span class="side-ico">📦</span>1. Cargar retiro / venta</button>
             <button class="side-btn btn-op2" id="btn-devolucion"><span class="side-ico">↩️</span>2. Devoluciones</button>
@@ -499,9 +499,9 @@ function leerItems(tbodyId, err){
 }
 
 // ===== Ventanas de trabajo: retiro/venta, devolución, bonificación y devolución de stock =====
-// Cada botón abre una ventana a PANTALLA COMPLETA. Si hace falta cargar dos o más a la vez (por ejemplo, ventas para
+// Cada botón abre una ventana (un recuadro centrado, del tamaño que necesita). Si hace falta cargar dos o más a la vez (por ejemplo, ventas para
 // dos vendedores), se la minimiza con "Minimizar" —queda como una barrita abajo con el vendedor y el total— y se abre otra;
-// tocando la barrita vuelve a abrirse a pantalla completa. Solo una está abierta a la vez. Cada ventana lleva su propio
+// tocando la barrita vuelve a abrirse. Solo una está abierta a la vez. Cada ventana lleva su propio
 // vendedor, sus productos y sus totales, y se confirma o se cierra por separado.
 
 const MAX_VENTANAS = 4;
@@ -642,7 +642,7 @@ function abrirVentana(tipo, pedido = null){
   if(items.length) items.forEach(it => agregarFilaItem(tbodyId, totalId, it));
   else agregarFilaItem(tbodyId, totalId);
   actualizarTituloVentana(w);
-  agrandarVentana(w); // la nueva se abre a pantalla completa; si había otra abierta, se minimiza sola
+  agrandarVentana(w); // la nueva se abre en su recuadro; si había otra abierta, se minimiza sola
 }
 
 // Solo una ventana está grande a la vez.
@@ -652,7 +652,7 @@ function fijarTamano(w, grande){
   w.el.classList.toggle('chico', !grande);
   const b = w.el.querySelector('.vt-min');
   b.textContent = grande ? '⤓ Minimizar' : '⤢ Abrir';
-  b.title = grande ? 'Minimizar para poder cargar otra a la vez' : 'Abrirla a pantalla completa';
+  b.title = grande ? 'Minimizar para poder cargar otra a la vez' : 'Volver a abrirla';
 }
 function agrandarVentana(w){
   ventanas.forEach(x => { if(x !== w && x.grande) fijarTamano(x, false); });
