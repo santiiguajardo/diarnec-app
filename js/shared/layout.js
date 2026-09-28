@@ -10,8 +10,7 @@ import { instalarAvisos } from './dialogs.js';
 // (Dashboard además está bloqueado en la base — ver mi_perfil/dash_periodo — no es solo visual).
 const MODULES = [
   { key: 'dashboard', label: 'Dashboard', href: 'dashboard.html', color: '#e67e22', roles: ['admin'] },
-  { key: 'ventas', label: 'Ventas', href: 'ventas.html', color: '#c0392b', roles: ['admin', 'encargado'] },
-  { key: 'cobranzas', label: 'Cobranzas', href: 'cobranzas.html', color: '#e84393', roles: ['admin', 'encargado'] },
+  { key: 'ventas', label: 'Movimientos', href: 'ventas.html', color: '#c0392b', roles: ['admin', 'encargado'] },
   { key: 'historial', label: 'Historial', href: 'historial.html', color: '#3498db', roles: ['admin', 'encargado'] },
   { key: 'inventario', label: 'Inventario y precios', href: 'inventario.html', color: '#f1c40f', roles: ['admin', 'encargado'] },
   { key: 'reposicion', label: 'Reposición', href: 'reposicion.html', color: '#d35400', roles: ['admin', 'encargado'] },

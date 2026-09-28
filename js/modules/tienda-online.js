@@ -62,7 +62,7 @@ const TIPO_LABEL = { comercio: 'Comercio', particular: 'Particular' };
       <div class="cuenta-acciones">
         <button class="btn-sm btn-add" id="cuenta-ingresar">💵 Ingresar dinero</button>
         <button class="btn-sm btn-blue" id="cuenta-detalle">Ver detalle de la cuenta</button>
-        <a class="btn-sm btn-grey" href="ventas.html" style="text-decoration:none;">↩️ Devoluciones y bonificaciones (en Ventas)</a>
+        <a class="btn-sm btn-grey" href="ventas.html" style="text-decoration:none;">↩️ Devoluciones y bonificaciones (en Movimientos)</a>
       </div>
     </div>
 
@@ -311,7 +311,7 @@ async function onClickPedidos(e){
       return;
     }
 
-    // Pasar a venta se hace en el panel de Ventas, con los productos del pedido ya cargados
+    // Pasar a venta se hace en el panel de Movimientos, con los productos del pedido ya cargados
     // y el vendedor "Tienda Online" elegido; ahí se confirma (y recién ahí se descuenta el stock).
     if(nuevo === 'confirmada'){
       // El número de pedido viaja por sessionStorage: algunos servidores estáticos pierden el ?query al redirigir.
