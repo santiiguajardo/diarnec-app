@@ -1,0 +1,41 @@
+name: Mantener activo Supabase
+
+# El plan gratis de Supabase pausa el proyecto si pasa una semana sin actividad. Esta tarea llama, lunes y jueves,
+# a la función registrar_latido() de la base (ver sql/migrations/0036_latido_para_que_supabase_no_se_pause.sql):
+# anota la fecha en una tabla de una sola fila. No toca ventas, pagos, stock, caja ni historial.
+# Usa solo la clave PÚBLICA de la tienda (la misma que ya está en js/shared/supabase-config.js): no hay contraseñas ni secretos.
+#
+# Si Supabase ya estuviera pausado o no respondiera, la tarea falla y GitHub avisa por mail.
+# Se puede probar a mano desde la pestaña "Actions" del repo → "Mantener activo Supabase" → "Run workflow".
+#
+# Ojo: GitHub desactiva las tareas programadas de un repo que pasa 60 días sin ninguna actividad (commits).
+# Si algún día se deja de tocar el repo por meses, entrar a Actions y volver a activar esta tarea.
+on:
+  schedule:
+    - cron: '17 12 * * 1,4'   # lunes y jueves, 12:17 UTC (09:17 en Argentina)
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  latido:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Registrar el latido en la base
+        run: |
+          URL="https://pncrxtfxgomnxoveknys.supabase.co"
+          KEY="sb_publishable_JTfYvnzLzcRo2_f1EcG4og_dRjffR2K"
+          for intento in 1 2 3; do
+            code=$(curl -s -o respuesta.txt -w "%{http_code}" -X POST "$URL/rest/v1/rpc/registrar_latido" \
+              -H "apikey: $KEY" -H "Content-Type: application/json" -d '{}')
+            echo "Intento $intento: HTTP $code"
+            cat respuesta.txt; echo
+            if [ "$code" = "200" ]; then
+              echo "Latido registrado."
+              exit 0
+            fi
+            sleep 20
+          done
+          echo "No se pudo registrar el latido: revisar si el proyecto de Supabase está pausado."
+          exit 1
