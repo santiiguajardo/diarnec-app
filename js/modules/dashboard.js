@@ -3,6 +3,7 @@ import { requireAdmin } from '../shared/auth-guard.js';
 import { mountLayout } from '../shared/layout.js';
 import { montarAlertasVencimiento } from '../shared/alertas-vencimiento.js';
 import { money, dateTime } from '../shared/format.js';
+import { descargarCopiaExcel, textoUltimaCopia } from '../shared/respaldo.js';
 
 // Paleta: Black russian / Alucard night / Palatinate blue / Grey placidity / Baby grey.
 const BLACK = '#000029', ALUCARD = '#000051', BLUE = '#173DED', GREY = '#BABABA', ROJO = '#C0392B', VERDE = '#17A06B';
@@ -46,7 +47,21 @@ const finIso = iso => { const d = new Date(`${iso}T00:00:00-03:00`); d.setDate(d
     </div>
     <div id="venc-box"></div>
     <div id="dash-body"><div class="rk-vacio">Cargando…</div></div>
+    <div class="admin-section" id="respaldo-box">
+      <h3>💾 Copia de seguridad</h3>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:12px;">
+        Descarga un archivo de Excel con todo el sistema: ventas, devoluciones, pagos, gastos, stock, productos, clientes, vendedores y proveedores.
+        Conviene hacerlo una vez por semana y guardarlo en tu compu o en Google Drive.
+      </p>
+      <div class="rs-fila">
+        <button class="btn-sm btn-add" id="rs-btn">⬇ Descargar copia en Excel</button>
+        <span id="rs-estado" class="rs-estado"></span>
+      </div>
+      <div id="rs-ultima" class="rs-ultima"></div>
+    </div>
   `;
+  pintarUltimaCopia();
+  $('rs-btn').addEventListener('click', bajarCopia);
   montarAlertasVencimiento($('venc-box'));
 
   $('w-sel').addEventListener('change', e => elegirSemana(Number(e.target.value)));
@@ -61,6 +76,31 @@ const finIso = iso => { const d = new Date(`${iso}T00:00:00-03:00`); d.setDate(d
   pintarControles();
   await cargarSemana();
 })();
+
+function pintarUltimaCopia(){
+  const u = textoUltimaCopia();
+  const el = $('rs-ultima');
+  el.textContent = u.texto;
+  el.classList.toggle('vieja', u.antigua);
+}
+
+async function bajarCopia(){
+  const btn = $('rs-btn'), est = $('rs-estado');
+  btn.disabled = true;
+  est.className = 'rs-estado';
+  try {
+    const r = await descargarCopiaExcel(t => { est.textContent = t; });
+    est.className = 'rs-estado ok';
+    est.textContent = r.avisos.length
+      ? `Listo: ${r.archivo}. Ojo, no se pudieron leer: ${r.avisos.join('; ')}`
+      : `Listo: se descargó ${r.archivo} (${r.hojas} hojas).`;
+  } catch(e){
+    est.className = 'rs-estado err';
+    est.textContent = 'No se pudo armar la copia: ' + (e.message || e);
+  }
+  btn.disabled = false;
+  pintarUltimaCopia();
+}
 
 function pintarControles(){
   $('w-sel').innerHTML = tend.map((w, i) => `<option value="${i}" ${i === selIdx ? 'selected' : ''}>${etiqueta(w, i)}</option>`).join('');

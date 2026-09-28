@@ -56,7 +56,10 @@
   .estado-seg .seg:hover{background:var(--paper);}
   .estado-seg .seg-pendiente.active{background:#e67e22;color:#fff;}
   .estado-seg .seg-confirmada.active{background:#2BB673;color:#fff;}
+  .estado-seg .seg-entregado.active{background:#2E86DE;color:#fff;}
   .estado-seg .seg-anulada.active{background:#C0392B;color:#fff;}
+  .estado-seg{flex-wrap:wrap;}
+  .badge.entregado{background:#2E86DE;}
 
   .modal-overlay{position:fixed;inset:0;background:rgba(18,36,54,.5);display:none;align-items:center;justify-content:center;z-index:50;padding:20px;}
   .modal-overlay.open{display:flex;}
@@ -91,12 +94,38 @@
   .logo-nom{font-weight:700;min-width:120px;font-size:14px;}
   .logo-url{flex:1;min-width:220px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px;}
   .logo-row button:disabled{opacity:.4;cursor:default;}
+  .cuenta-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px;}
+  .cta-card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px;}
+  .cta-card small{display:block;font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-bottom:4px;}
+  .cta-card b{font-size:19px;color:var(--navy);}
+  .cta-card.debe-pos{border-color:#E5383B;background:#FFF5F5;} .cta-card.debe-pos b{color:#C0392B;}
+  .cta-card.debe-cero b{color:#17804F;}
+  .cuenta-acciones{display:flex;gap:10px;flex-wrap:wrap;}
   .cfg-msg{font-size:13px;}
   .cfg-msg.ok{color:#17804F;} .cfg-msg.err{color:#C0392B;}
 </style>
 </head>
 <body>
 <div id="app-shell"></div>
+
+<div class="modal-overlay" id="modal-ingreso">
+  <div class="modal-box">
+    <h3>Ingresar dinero — Tienda online</h3>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:8px;">Cuando un cliente de la tienda te paga, anotalo acá: baja lo que la tienda te debe y suma a la Caja como ingreso.</p>
+    <label>Monto $</label>
+    <input type="number" step="0.01" id="ing-monto">
+    <label>Medio de pago</label>
+    <select id="ing-medio">
+      <option value="efectivo">Efectivo</option>
+      <option value="transferencia">Transferencia</option>
+      <option value="cheque">Cheque</option>
+    </select>
+    <label>Descripción (opcional, por ejemplo: pedido #12)</label>
+    <input type="text" id="ing-descripcion" maxlength="200">
+    <div class="modal-err" id="ing-err"></div>
+    <div class="modal-actions"><button class="modal-cancel" id="ing-cancelar">Cancelar</button><button class="modal-confirm" id="ing-confirmar">Ingresar</button></div>
+  </div>
+</div>
 
 <div class="modal-overlay" id="modal-editar">
   <div class="modal-box">

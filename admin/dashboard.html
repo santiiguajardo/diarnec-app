@@ -12,6 +12,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@0,62..125,100..900;1,62..125,100..900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js" integrity="sha384-JBR+x8blGwjDRO63aHCGiZMD4VNiTR4ZUGA+N6ZKLf3zNt1fK8IBpcgPaMrxqWBp" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" integrity="sha384-vtjasyidUo0kW94K5MXDXntzOJpQgBKXmE7e2Ga4LG0skTTLeBi97eFAXsqewJjw" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" integrity="sha384-NrKB+u6Ts6AtkIhwPixiKTzgSKNblyhlk0Sohlgar9UHUBzai/sgnNNWWd291xqt" crossorigin="anonymous"></script>
 <link rel="stylesheet" href="../css/tokens.css">
 <link rel="stylesheet" href="../css/shared.css">
@@ -121,6 +122,10 @@
   .stock-bar > div{height:100%;border-radius:4px;}
 
   @media (max-width:900px){ .dash-grid{grid-template-columns:1fr;} .dash-week select{min-width:150px;} }
+  .rs-fila{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+  .rs-estado{font-size:13px;color:var(--muted);} .rs-estado.ok{color:#17804F;} .rs-estado.err{color:#C0392B;}
+  .rs-ultima{margin-top:10px;font-size:12.5px;color:var(--muted);}
+  .rs-ultima.vieja{color:#9A5B00;background:#FFF4E5;border-radius:8px;padding:8px 10px;font-weight:600;}
 </style>
 </head>
 <body>
