@@ -7,12 +7,14 @@ import { requireVendedor, logout } from '../shared/auth-guard.js';
 import { USERNAME_EMAIL_DOMAIN } from '../shared/supabase-config.js';
 import { money, dateTime } from '../shared/format.js';
 import { guardarPDF } from '../shared/guardar-pdf.js';
+import { vigilarVersion } from '../shared/actualizacion.js';
 import { confirmDialog, instalarAvisos } from '../shared/dialogs.js';
 import { createProductPicker } from '../shared/product-picker.js';
 import { ajustarInputCantidad, cantidadEsValida, mensajeCantidad } from '../shared/cantidad.js';
 import { descargarRemito, compartirRemitoWhatsApp, normalizarTelefono } from '../shared/remito.js';
 
 instalarAvisos();
+vigilarVersion();
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const norm = s => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();

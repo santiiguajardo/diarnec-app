@@ -7,6 +7,9 @@
 const esCelular = () => /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
   || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent)); // iPad que se hace pasar por Mac
 
+// Navegadores que se abren DENTRO de otra app (WhatsApp, Instagram, Facebook, Gmail...) suelen bloquear las descargas
+const enOtraApp = () => /FBAN|FBAV|Instagram|WhatsApp|Line\/|Snapchat|Twitter|GSA\/|; wv\)|Messenger/i.test(navigator.userAgent);
+
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 export function guardarPDF(doc, nombre){
@@ -29,6 +32,7 @@ export function guardarPDF(doc, nombre){
         <a class="pdf-btn pdf-abrir" href="${url}" target="_blank" rel="noopener">👁 Abrir para verlo</a>
         <button type="button" class="pdf-btn pdf-cerrar">Cerrar</button>
       </div>
+      ${enOtraApp() ? '<p class="pdf-aviso">⚠️ Estás viendo la página dentro de otra aplicación y ahí no siempre se puede descargar. Si no se baja, abrí esta página en <b>Chrome</b> o <b>Safari</b> (menú ⋮ → "Abrir en el navegador").</p>' : ''}
     </div>`;
   document.body.appendChild(overlay);
 

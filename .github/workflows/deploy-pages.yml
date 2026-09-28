@@ -45,6 +45,8 @@ jobs:
           rsync -a --delete js/shared/ _pages/js/shared/
           rsync -a --delete js/modules/ _pages/js/modules/
           if [ -f tiendaonline/index.html ]; then cp tiendaonline/index.html _pages/index.html; fi
+          # Versión publicada: el panel la compara para avisar cuando hay una nueva (js/shared/actualizacion.js)
+          echo "{\"v\":\"${GITHUB_SHA}\"}" > _pages/version.json
 
       - name: Publicar si hay cambios
         run: |
