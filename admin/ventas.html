@@ -102,19 +102,14 @@
   .items-table .item-neto small{display:block;color:var(--muted);font-weight:400;font-size:10px;}
 
   /* ===== Ventanas de trabajo (retiro/venta, devolución, bonificación, devolución de stock) =====
-     Cada una se abre a PANTALLA COMPLETA. Con "Minimizar" pasa a una barrita abajo y se puede abrir otra;
-     tocando la barrita vuelve a abrirse a pantalla completa. Solo una está abierta a la vez. */
-  .vt-fondo{position:fixed;inset:0;background:#fff;z-index:45;display:none;}
+     Cada una se abre como un recuadro centrado (del tamaño que necesita). Con "Minimizar" pasa a una barrita abajo y se puede abrir otra;
+     tocando la barrita vuelve a abrirse. Solo una está abierta a la vez. */
+  .vt-fondo{position:fixed;inset:0;background:rgba(18,36,54,.5);z-index:45;display:none;}
   .vt-fondo.on{display:block;}
   .vt-dock{position:fixed;bottom:0;left:var(--vt-left,220px);right:0;z-index:47;display:flex;align-items:flex-end;flex-wrap:wrap;gap:10px;padding:0 170px 0 14px;pointer-events:none;} /* deja lugar al botón flotante del Asistente */
   .vt-win{pointer-events:auto;display:flex;flex-direction:column;background:#fff;border:1px solid var(--line);border-top:5px solid var(--vt-color,#122436);}
-  .vt-win.grande{position:fixed;z-index:46;inset:0;width:auto;max-height:none;border-radius:0;border:none;border-top:6px solid var(--vt-color,#122436);}
-  html.vt-chicas .vt-win.grande{bottom:62px;}
-  .vt-win.grande .vt-head{padding:12px 24px;}
-  .vt-win.grande .vt-titulo{font-size:17px;}
-  .vt-win.grande .vt-body{flex:1;min-height:0;padding:8px max(24px, calc((100% - 1100px) / 2)) 26px;}
-  html.vt-grande{overflow:hidden;} /* la página de atrás no se mueve mientras hay una ventana a pantalla completa */
-  html.vt-grande #as-fab{display:none;} /* el botón del Asistente no tapa la ventana a pantalla completa */
+  .vt-win.grande{position:fixed;z-index:46;inset:0;margin:auto;width:min(720px,94vw);height:fit-content;max-height:calc(100vh - 40px);border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.35);}
+  html.vt-chicas .vt-win.grande{bottom:62px;max-height:calc(100vh - 40px - 62px);}
   .vt-win.chico{flex:0 0 auto;max-width:380px;border-radius:12px 12px 0 0;box-shadow:0 -4px 18px rgba(18,36,54,.25);}
   .vt-win.chico .vt-body{display:none;}
   .vt-win.chico .vt-head{cursor:pointer;border-bottom:none;}
@@ -135,7 +130,7 @@
   .vt-acciones .modal-confirm{background:var(--green);color:#fff;}
   .vt-acciones .modal-confirm:disabled{opacity:.55;cursor:default;}
   html.vt-hay .admin-content{padding-bottom:70px;}
-  @media (max-width:900px){ .vt-dock{left:0;padding:0 8px 0 8px;} .vt-win.chico{max-width:none;flex:1 1 100%;} }
+  @media (max-width:900px){ .vt-dock{left:0;padding:0 130px 0 8px;} .vt-win.chico{max-width:none;flex:1 1 100%;} }
 </style>
 </head>
 <body>
