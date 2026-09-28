@@ -124,6 +124,9 @@
   #tipo-comercio{--c:#17A06B;--bg:#E4F6EC;}
   #tipo-particular{--c:#2E86DE;--bg:#E6F0FB;}
   .tipo-note{font-size:12px;color:var(--muted);margin:-4px 0 10px;line-height:1.35;}
+  .peso-note{display:none;margin:2px 0 10px;padding:11px 12px;border-radius:10px;background:#FFF1C2;border:2px solid #F5B301;color:#5C3B00;font-size:13px;line-height:1.4;}
+  .peso-note b{display:block;font-family:var(--display);font-size:14px;margin-bottom:3px;color:#3F2900;}
+  .peso-note span{display:block;margin-top:5px;font-size:12px;color:#7A5200;}
   .min-note{font-size:12px;border-radius:8px;padding:8px 10px;margin-bottom:10px;background:#FFF4E5;color:#9A5B00;display:none;}
   .price-note{background:#fff;border-bottom:1px solid var(--line);color:var(--muted);font-size:12.5px;text-align:center;padding:9px 16px;}
   .drawer-foot{max-height:62vh;overflow-y:auto;}
@@ -229,6 +232,7 @@
     <div class="field" id="vend-wrap" style="display:none;"><label>¿Querés que te atienda un vendedor? (opcional)</label>
       <select id="shop-vend"><option value="">Sin preferencia (te atiende DIARNEC)</option></select></div>
     <div class="min-note" id="min-note"></div>
+    <div class="peso-note" id="peso-note" role="alert"></div>
     <div class="err" id="err-msg"></div>
     <button class="checkout-btn" onclick="checkout()"><img src="img/whatsapp-blanco.png" alt="" width="22" height="22"><span id="checkout-label">Finalizar pedido por WhatsApp</span></button>
   </div>
@@ -367,6 +371,21 @@
     }
     document.getElementById('total').textContent = money(cartTotal());
     renderMinNote();
+    renderPesoNote();
+  }
+
+  // Productos que se venden por kg: el total real depende del peso, así que se avisa antes de finalizar.
+  function pesablesEnCarrito(){
+    return Object.keys(cart).map(id => products.find(p => p.id == id)).filter(p => p && p.pesable);
+  }
+  function renderPesoNote(){
+    const el = document.getElementById('peso-note');
+    const lista = pesablesEnCarrito();
+    if(!lista.length){ el.style.display = 'none'; el.textContent = ''; return; }
+    el.innerHTML = `<b>⚖️ ¡Ojo! Tu pedido tiene productos por kg</b>` +
+      `El total final puede variar según el peso real. Te vamos a pasar la factura con el total real por WhatsApp.` +
+      `<span>Por kg: ${lista.map(p => esc(p.name)).join(', ')}</span>`;
+    el.style.display = 'block';
   }
 
   function faltaParaMinimo(){
@@ -463,12 +482,14 @@
     }
 
     const total = data && data.total != null ? Number(data.total) : cartTotal();
+    const hayPesables = items.some(([id]) => { const p = products.find(p => p.id == id); return p && p.pesable; });
     const lines = [vendedor ? `Hola ${vendedor.nombre}, quiero hacer un pedido en DIARNEC:` : 'Hola DIARNEC, quiero hacer un pedido:', ''];
     items.forEach(([id, qty]) => {
       const p = products.find(p => p.id == id);
-      if(p) lines.push(`• ${qty}x ${p.name} - ${money(priceFor(p) * qty)}`);
+      if(p) lines.push(`• ${qty}x ${p.name}${p.pesable ? ' (por kg)' : ''} - ${money(priceFor(p) * qty)}`);
     });
-    lines.push('', `Total: ${money(total)}`,
+    if(hayPesables) lines.push('', '⚖️ Incluye productos por kg: el total final se confirma con el peso real.');
+    lines.push('', `Total${hayPesables ? ' estimado' : ''}: ${money(total)}`,
       tipo === 'comercio' ? `Comercio: ${nombre}` : `Nombre: ${nombre}`);
     if(tipo === 'comercio') lines.push(`CUIT/CUIL: ${cuit}`); else lines.push('Compra como particular');
     lines.push(`Dirección: ${dir}`, `Pedido #${data && data.id}`);
@@ -511,6 +532,7 @@
       desc: p.descripcion || '',
       brand: p.marcas ? p.marcas.nombre : '',
       cat: p.categorias ? p.categorias.nombre : '',
+      pesable: /\bpor\s*kg\b/i.test(p.unidad || ''), // la unidad "por kg" (no la categoría: hay cajas dentro de Quesos y "por kg" dentro de Snacks)
       color: p.categorias ? p.categorias.color : '#2BB673'
     }));
   }
