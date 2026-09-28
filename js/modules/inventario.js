@@ -63,6 +63,10 @@ async function deshacer(){
 
   content.innerHTML = `
     <div id="venc-box"></div>
+    <div class="inv-error-box" id="inv-error" hidden>
+      <span></span>
+      <button class="btn-sm" id="inv-error-retry" type="button">↻ Reintentar</button>
+    </div>
     <div class="stats-bar">
       <div><span>Artículos:</span><b id="stat-total">0</b></div>
       <div><span>Unidades en stock:</span><b id="stat-unidades">0</b></div>
@@ -155,7 +159,7 @@ async function deshacer(){
         <thead><tr>
           <th></th><th>Categoría</th><th>Marca</th><th>Artículo</th><th>Unidad</th><th title="Lo que te cuesta a vos">Precio de costo</th><th title="Ganancia sobre el costo">Margen %</th><th title="Lo que cobrás">Precio de venta</th><th>Stock</th><th></th>
         </tr></thead>
-        <tbody id="inv-body"></tbody>
+        <tbody id="inv-body"><tr><td colspan="10" class="empty-row">Cargando…</td></tr></tbody>
       </table>
     </div>
   `;
@@ -185,6 +189,7 @@ async function deshacer(){
     if(f) adjuntarRemito(f);
   });
   document.getElementById('np-submit').addEventListener('click', agregarProducto);
+  document.getElementById('inv-error-retry').addEventListener('click', cargarTodo);
   document.getElementById('btn-desglose').addEventListener('click', () => {
     const box = document.getElementById('desglose-box');
     box.hidden = !box.hidden;
@@ -227,17 +232,26 @@ function toggleModal(id, open){
   document.getElementById(id).classList.toggle('open', open);
 }
 
+// Si algo falla (conexión, Supabase caído, lo que sea) NUNCA se pisan los datos que ya estaban en pantalla
+// con una lista vacía: eso se vería como "se borró todo el inventario" sin haber pasado nada. Se avisa y listo.
 async function cargarTodo(){
-  const [{ data: mk }, { data: cat }, { data: prod }, { data: prv }] = await Promise.all([
+  const [rMk, rCat, rProd, rPrv] = await Promise.all([
     sb.from('marcas').select('id, nombre, color, proveedor_id').order('nombre'),
     sb.from('categorias').select('id, nombre, color, por_peso').order('nombre'),
     sb.from('productos').select('id, marca_id, categoria_id, nombre, unidad, sku, precio_compra, precio_venta, stock_actual, stock_minimo, activo, imagen_url, descripcion, etiqueta, marcas(nombre, color), categorias(nombre, por_peso)').order('nombre'),
     sb.from('proveedores').select('id, nombre, activo').order('nombre')
   ]);
-  proveedores = prv || [];
-  marcas = mk || [];
-  categorias = cat || [];
-  productos = prod || [];
+  const fallo = rMk.error || rCat.error || rProd.error || rPrv.error;
+  if(fallo){
+    mostrarErrorCarga(fallo.message);
+    return;
+  }
+  ocultarErrorCarga();
+
+  proveedores = rPrv.data || [];
+  marcas = rMk.data || [];
+  categorias = rCat.data || [];
+  productos = rProd.data || [];
 
   document.getElementById('np-marca').innerHTML = marcas.map(m => `<option value="${m.id}">${esc(m.nombre)}</option>`).join('');
   document.getElementById('np-categoria').innerHTML = categorias.map(c => `<option value="${c.id}">${esc(c.nombre)}</option>`).join('');
@@ -247,6 +261,17 @@ async function cargarTodo(){
   renderTabla();
   renderMarcas();
   renderCategorias();
+}
+
+function mostrarErrorCarga(msg){
+  const el = document.getElementById('inv-error');
+  if(!el) { alert('No se pudo cargar el inventario: ' + msg); return; }
+  el.hidden = false;
+  el.querySelector('span').textContent = 'No se pudo cargar el inventario (no se tocó ni se borró nada): ' + msg;
+}
+function ocultarErrorCarga(){
+  const el = document.getElementById('inv-error');
+  if(el) el.hidden = true;
 }
 
 // ===== Administrar marcas =====
@@ -443,7 +468,8 @@ function filaDesglose(g, capitalTotal){
 }
 
 function renderDesglose(list){
-  if(document.getElementById('desglose-box').hidden) return; // no hace falta calcular si está cerrado
+  const box = document.getElementById('desglose-box');
+  if(!box || box.hidden) return; // no hace falta calcular si está cerrado (o si por algo no está en la página)
   const capitalTotal = list.reduce((s, p) => s + Number(p.precio_compra) * Number(p.stock_actual), 0);
   const porMarcaTabla = agruparPor(list, 'marca');
   const porCategoriaTabla = agruparPor(list, 'categoria');
@@ -500,8 +526,13 @@ function renderTabla(){
   document.getElementById('stat-unidades').textContent = unidades.toLocaleString('es-AR', { maximumFractionDigits: 2 });
   const capital = list.reduce((s,p) => s + Number(p.precio_compra) * Number(p.stock_actual), 0);
   document.getElementById('stat-capital').textContent = money(capital);
-  renderDesglose(list);
 
+  // La tabla principal se arma pase lo que pase con el desglose (si algo ahí falla, no se lleva puesta la tabla).
+  pintarFilas(tbody, list);
+  try { renderDesglose(list); } catch(e){ console.error('No se pudo armar el desglose por marca/categoría:', e); }
+}
+
+function pintarFilas(tbody, list){
   if(list.length === 0){
     tbody.innerHTML = `<tr><td colspan="10" class="empty-row">No hay productos que coincidan.</td></tr>`;
     return;
