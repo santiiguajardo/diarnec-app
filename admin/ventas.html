@@ -102,15 +102,21 @@
   .items-table .item-neto small{display:block;color:var(--muted);font-weight:400;font-size:10px;}
 
   /* ===== Ventanas de trabajo (retiro/venta, devolución, bonificación, devolución de stock) =====
-     Se abren de a una por clic, quedan abajo lado a lado y no bloquean la pantalla. */
-  .vt-dock{position:fixed;bottom:0;left:var(--vt-left,220px);right:0;z-index:40;display:flex;align-items:flex-end;gap:12px;padding:0 14px;pointer-events:none;overflow-x:auto;}
-  .vt-win{pointer-events:auto;flex:1 1 0;min-width:590px;max-width:760px;max-height:82vh;display:flex;flex-direction:column;background:#fff;border:1px solid var(--line);border-top:5px solid var(--vt-color,#122436);border-radius:14px 14px 0 0;box-shadow:0 -6px 28px rgba(18,36,54,.22);}
-  .vt-win.min{flex:0 0 auto;min-width:0;width:auto;max-width:340px;}
-  .vt-win.min .vt-body{display:none;}
-  .vt-head{display:flex;align-items:center;gap:8px;padding:10px 12px;cursor:pointer;user-select:none;border-bottom:1px solid var(--line);}
-  .vt-win.min .vt-head{border-bottom:none;}
+     Cada una se abre GRANDE (como un cuadro). Con "Achicar" pasa a una barrita abajo y se puede abrir otra;
+     tocando la barrita vuelve a agrandarse. Solo una está grande a la vez. */
+  .vt-fondo{position:fixed;inset:0;background:rgba(18,36,54,.5);z-index:45;display:none;}
+  .vt-fondo.on{display:block;}
+  .vt-dock{position:fixed;bottom:0;left:var(--vt-left,220px);right:0;z-index:47;display:flex;align-items:flex-end;flex-wrap:wrap;gap:10px;padding:0 170px 0 14px;pointer-events:none;} /* deja lugar al botón flotante del Asistente */
+  .vt-win{pointer-events:auto;display:flex;flex-direction:column;background:#fff;border:1px solid var(--line);border-top:5px solid var(--vt-color,#122436);}
+  .vt-win.grande{position:fixed;z-index:46;left:0;right:0;top:3vh;margin:0 auto;width:min(780px,94vw);max-height:calc(97vh - 64px);border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.35);}
+  .vt-win.chico{flex:0 0 auto;max-width:380px;border-radius:12px 12px 0 0;box-shadow:0 -4px 18px rgba(18,36,54,.25);}
+  .vt-win.chico .vt-body{display:none;}
+  .vt-win.chico .vt-head{cursor:pointer;border-bottom:none;}
+  .vt-win.chico .vt-head:hover{background:var(--paper);}
+  .vt-head{display:flex;align-items:center;gap:8px;padding:10px 12px;user-select:none;border-bottom:1px solid var(--line);}
   .vt-titulo{flex:1;min-width:0;font-family:var(--display,'Archivo',sans-serif);font-size:14px;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .vt-monto{margin-left:6px;padding:2px 9px;border-radius:100px;background:var(--paper);font-weight:800;font-size:12px;}
+  .vt-min{width:auto !important;padding:0 11px;font-size:12px !important;white-space:nowrap;}
   .vt-btn{width:28px;height:28px;border:none;border-radius:8px;background:var(--paper);color:var(--ink);font-size:14px;font-weight:700;cursor:pointer;flex:none;}
   .vt-btn:hover{background:#E3E7EB;} .vt-x:hover{background:#FDECEA;color:#C0392B;}
   .vt-body{padding:6px 16px 16px;overflow-y:auto;}
@@ -122,7 +128,8 @@
   .vt-acciones .modal-cancel:hover{background:var(--paper);}
   .vt-acciones .modal-confirm{background:var(--green);color:#fff;}
   .vt-acciones .modal-confirm:disabled{opacity:.55;cursor:default;}
-  @media (max-width:900px){ .vt-dock{left:0;flex-direction:column;align-items:stretch;padding:0 8px;overflow-y:auto;max-height:90vh;} .vt-win{min-width:0;max-width:none;} }
+  html.vt-hay .admin-content{padding-bottom:70px;}
+  @media (max-width:900px){ .vt-dock{left:0;padding:0 8px 0 8px;} .vt-win.chico{max-width:none;flex:1 1 100%;} }
 </style>
 </head>
 <body>
@@ -170,6 +177,7 @@
   </div>
 </div>
 
+<div class="vt-fondo" id="vt-fondo"></div>
 <div class="vt-dock" id="vt-dock" aria-label="Ventanas de trabajo"></div>
 
 <div class="modal-overlay" id="modal-pago">
