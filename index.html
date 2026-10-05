@@ -277,7 +277,9 @@
   import { sb } from './js/shared/supabase-client.js';
   import { money } from './js/shared/format.js';
 
-  const WHATSAPP_NUMBER = "5492262357262"; // número real de DIARNEC (código país + área, sin +)
+  // Número de DIARNEC (código país + área, sin +). Se configura desde el panel (Tienda online → WhatsApp de la distribuidora);
+  // este valor es solo el de respaldo por si la configuración no llega.
+  let WHATSAPP_NUMBER = "5492262357262";
 
   let products = [];
   let activeCat = "Todos";
@@ -566,6 +568,7 @@
   async function loadConfig(){
     const { data } = await sb.rpc('tienda_config_publica');
     if(data) config = { recargo: Number(data.recargo_particular_pct), minimo: Number(data.minimo_particular) };
+    if(data && /^[0-9]{11,15}$/.test(data.whatsapp || '')) WHATSAPP_NUMBER = data.whatsapp;
   }
 
   async function loadVendedores(){
