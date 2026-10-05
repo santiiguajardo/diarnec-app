@@ -15,11 +15,8 @@ const MODULES = [
   { key: 'historial', label: 'Historial', href: 'historial.html', color: '#3498db', roles: ['admin', 'encargado'] },
   { key: 'inventario', label: 'Inventario y precios', href: 'inventario.html', color: '#f1c40f', roles: ['admin', 'encargado'] },
   { key: 'reposicion', label: 'Reposición', href: 'reposicion.html', color: '#d35400', roles: ['admin', 'encargado'] },
-  { key: 'conteo', label: 'Conteo de inventario', href: 'conteo.html', color: '#f39c12', roles: ['admin', 'encargado'] },
   { key: 'proveedores', label: 'Pago a proveedores', href: 'proveedores.html', color: '#27ae60', roles: ['admin', 'encargado'] },
   { key: 'caja', label: 'Caja', href: 'caja.html', color: '#2ecc71', roles: ['admin', 'encargado'] },
-  { key: 'cierre', label: 'Cierre del día', href: 'cierre.html', color: '#8e44ad', roles: ['admin', 'encargado'] },
-  { key: 'reparto', label: 'Hoja de reparto', href: 'reparto.html', color: '#e17055', roles: ['admin', 'encargado'] },
   { key: 'tienda', label: 'Tienda online', href: 'tienda-online.html', color: '#16a085', roles: ['admin', 'encargado'] },
   { key: 'usuarios', label: 'Usuarios', href: 'usuarios.html', color: '#7f8c8d', roles: ['admin'] },
 ];
