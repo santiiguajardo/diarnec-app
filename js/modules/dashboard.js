@@ -158,12 +158,12 @@ function calc(d){
   const k = d.kpis;
   const ventas = num(k.ventas_neto), cantidad = num(k.cantidad_ventas);
   const creditos = num(k.devoluciones) + num(k.bonificaciones);
-  const egresos = num(k.gastos) + num(k.pagos_proveedores);
+  const egresos = num(k.gastos) + num(k.pagos_proveedores) + creditos;
   const cobros = num(k.cobros), costo = num(k.costo_estimado);
   return {
     ventas, cantidad, ticket: cantidad ? ventas / cantidad : 0,
     creditos, cantDev: num(k.cantidad_devoluciones), facturacion: ventas - creditos,
-    cobros, egresos, gastos: num(k.gastos), prov: num(k.pagos_proveedores), flujo: cobros - egresos,
+    cobros, egresos, gastos: num(k.gastos), prov: num(k.pagos_proveedores), dev: num(k.devoluciones), bonif: num(k.bonificaciones), flujo: cobros - egresos,
     costo, margen: costo > 0 ? ventas - costo : null, unidades: num(k.unidades), comisiones: num(k.comisiones)
   };
 }
@@ -173,7 +173,7 @@ const KPIS = [
   { k: 'facturacion', t: 'Facturación neta', ic: '📥', sub: () => 'Ventas − devoluciones y bonificaciones' },
   { k: 'creditos', t: 'Devoluciones y bonificaciones', ic: '↩', invert: true, sub: c => `${c.cantDev} devolución${c.cantDev === 1 ? '' : 'es'} en la semana` },
   { k: 'cobros', t: 'Cobros', ic: '💵', sub: () => 'Pagos de vendedores y clientes' },
-  { k: 'egresos', t: 'Egresos', ic: '📤', invert: true, sub: c => `Gastos ${money(c.gastos)} · proveedores ${money(c.prov)}` },
+  { k: 'egresos', t: 'Egresos', ic: '📤', invert: true, sub: c => `Gastos ${money(c.gastos)} · proveedores ${money(c.prov)} · devoluciones ${money(c.dev)} · bonificaciones ${money(c.bonif)}` },
   { k: 'flujo', t: 'Flujo de caja', ic: '💰', sub: () => 'Cobros − egresos' },
   { k: 'margen', t: 'Margen estimado', ic: '📈', sub: c => c.margen === null ? 'Cargá los costos en Inventario para verlo' : 'Ventas − costo actual de lo vendido' },
   { k: 'unidades', t: 'Unidades vendidas', ic: '📦', plano: true, sub: c => `${money(c.comisiones)} en comisiones a vendedores` }
@@ -188,7 +188,7 @@ function chipDelta(a, b, invert){
   return `<span class="delta ${(invert ? !sube : sube) ? 'bueno' : 'malo'}">${sube ? '▲' : '▼'}${pct}</span>`;
 }
 
-// ---------- balance: ingresos (lo que se cobró) vs. egresos (todo lo que salió: gastos y proveedores) ----------
+// ---------- balance: ingresos (lo que se cobró) vs. egresos (todo lo que salió: gastos, proveedores, devoluciones y bonificaciones) ----------
 
 function htmlBalance(){
   const a = calc(A);
@@ -209,7 +209,7 @@ function htmlBalance(){
         </div>
         <div class="balance-num">
           <span class="balance-dot" style="background:${ROJO}"></span>
-          <span class="balance-lbl">Egresos (gastos y proveedores)</span>
+          <span class="balance-lbl">Egresos (gastos, proveedores, devoluciones y bonificaciones)</span>
           <b style="color:${ROJO}">${money(egr)}</b>
         </div>
       </div>
@@ -227,8 +227,8 @@ function htmlBalance(){
       </div>
       <div class="balance-foot">
         ${diff >= 0
-          ? `Entró <b style="color:${VERDE}">${money(diff)}</b> más de lo que salió esta semana (gastos + proveedores).`
-          : `Salió <b style="color:${ROJO}">${money(-diff)}</b> más de lo que entró esta semana (gastos + proveedores).`}
+          ? `Entró <b style="color:${VERDE}">${money(diff)}</b> más de lo que salió esta semana (egresos incluyen devoluciones y bonificaciones).`
+          : `Salió <b style="color:${ROJO}">${money(-diff)}</b> más de lo que entró esta semana (egresos incluyen devoluciones y bonificaciones).`}
       </div>
       <div class="chart-box balance-chart"><canvas id="chart-balance"></canvas></div>
     </div>`;
@@ -420,12 +420,12 @@ function dibujarGraficos(cat){
   charts = {};
   if(!window.Chart) return;
 
-  // balance semanal: ingresos (cobros, línea) vs egresos (gastos + proveedores, barra)
+  // balance semanal: ingresos (cobros, línea) vs egresos (gastos + proveedores + devoluciones + bonificaciones, barra)
   const ascBal = [...tend].reverse();
   const origBal = k => tend.length - 1 - k;
   charts.balance = new Chart($('chart-balance'), {
     data: { labels: ascBal.map(w => fmtDia(w.desde)), datasets: [
-      { type: 'bar', label: 'Egresos', data: ascBal.map(w => num(w.egresos)), backgroundColor: ROJO, borderRadius: 4 },
+      { type: 'bar', label: 'Egresos', data: ascBal.map(w => num(w.egresos) + num(w.creditos)), backgroundColor: ROJO, borderRadius: 4 },
       { type: 'line', label: 'Ingresos', data: ascBal.map(w => num(w.cobros)),
         borderColor: VERDE, backgroundColor: VERDE, tension: .3, pointRadius: 3 }
     ] },
