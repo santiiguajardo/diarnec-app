@@ -5,6 +5,7 @@ import { money, dateTime } from '../shared/format.js';
 import { guardarPDF } from '../shared/guardar-pdf.js';
 import { confirmDialog } from '../shared/dialogs.js';
 import { abrirDetalleCuenta } from '../shared/cuenta-detalle.js';
+import { normalizarTelefono } from '../shared/remito.js';
 import { createProductPicker } from '../shared/product-picker.js';
 import { ajustarInputCantidad, cantidadEsValida, mensajeCantidad } from '../shared/cantidad.js';
 
@@ -51,6 +52,18 @@ const TIPO_LABEL = { comercio: 'Comercio', particular: 'Particular' };
         <button class="btn-sm btn-add" id="cfg-guardar">Guardar</button>
         <span id="cfg-msg" class="cfg-msg"></span>
       </div>
+      <h3 style="margin-top:22px;">WhatsApp de la distribuidora</h3>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:12px;">
+        Es el número al que le llegan los pedidos de la tienda cuando el cliente <b>no elige vendedor</b> (o el vendedor elegido no tiene WhatsApp cargado).
+        Escribilo con código de área, sin 0 ni 15 (ej: 2262357262). El cambio se aplica al instante en la tienda.
+      </p>
+      <div class="cfg-row">
+        <label>Número de WhatsApp <input type="tel" id="cfg-whatsapp" inputmode="tel" placeholder="Ej: 2262357262" maxlength="20"></label>
+        <button class="btn-sm btn-add" id="cfg-wa-guardar">Guardar</button>
+        <a class="btn-sm btn-grey" id="cfg-wa-probar" href="#" target="_blank" rel="noopener" style="text-decoration:none;">Probar el número</a>
+        <span id="cfg-wa-msg" class="cfg-msg"></span>
+      </div>
+      <div id="cfg-wa-actual" class="cfg-msg" style="margin-top:8px;color:var(--muted);"></div>
     </div>
 
     <div class="admin-section" id="cuenta-online">
@@ -171,9 +184,10 @@ function dondeEntregar(p){ return p.cliente_direccion || p.cliente_localidad || 
 
 async function iniciarConfig(){
   const sec = document.getElementById('config-section');
-  const { data } = await sb.from('tienda_config').select('recargo_particular_pct, minimo_particular').maybeSingle();
+  const { data } = await sb.from('tienda_config').select('recargo_particular_pct, minimo_particular, whatsapp').maybeSingle();
   if(!data) return;
   sec.style.display = '';
+  iniciarWhatsapp(data.whatsapp);
   document.getElementById('cfg-recargo').value = Number(data.recargo_particular_pct);
   document.getElementById('cfg-minimo').value = Number(data.minimo_particular);
   document.getElementById('cfg-guardar').addEventListener('click', async () => {
@@ -232,6 +246,29 @@ async function iniciarCuenta(){
     if(error){ err.textContent = error.message; return; }
     toggleModal('modal-ingreso', false);
     await cargarCuenta();
+  });
+}
+
+// Número de WhatsApp de la distribuidora (lo usa la tienda cuando el cliente no elige vendedor)
+function iniciarWhatsapp(actual){
+  const input = document.getElementById('cfg-whatsapp');
+  const msg = document.getElementById('cfg-wa-msg');
+  const pintar = num => {
+    document.getElementById('cfg-wa-actual').textContent = num ? `Hoy los pedidos sin vendedor se envían al +${num}.` : 'Todavía no hay un número guardado: la tienda usa el que trae por defecto.';
+    document.getElementById('cfg-wa-probar').href = num ? `https://wa.me/${num}` : '#';
+  };
+  input.value = actual || '';
+  pintar(actual);
+  document.getElementById('cfg-wa-guardar').addEventListener('click', async () => {
+    const num = normalizarTelefono(input.value);
+    msg.className = 'cfg-msg err';
+    if(!/^[0-9]{11,15}$/.test(num)){ msg.textContent = 'El número no parece válido: escribilo con código de área, sin 0 ni 15 (ej: 2262357262).'; return; }
+    const { error } = await sb.rpc('guardar_whatsapp_tienda', { p_numero: num });
+    if(error){ msg.textContent = error.message; return; }
+    input.value = num;
+    pintar(num);
+    msg.className = 'cfg-msg ok';
+    msg.textContent = 'Guardado. Ya se usa en la tienda.';
   });
 }
 
