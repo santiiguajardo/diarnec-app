@@ -16,7 +16,7 @@ let editando = null; // id del gasto que se está modificando (null = cargando u
   content.innerHTML = `
     <div class="caja-resumen">
       <div class="caja-card"><span>Ingresos del mes</span><b id="stat-ing-mes" class="pos">$0</b></div>
-      <div class="caja-card"><span>Gastos del mes</span><b id="stat-gas-mes" class="neg">$0</b></div>
+      <div class="caja-card"><span>Egresos del mes</span><b id="stat-gas-mes" class="neg">$0</b></div>
       <div class="caja-card" id="card-bal-mes"><span>Balance del mes</span><b id="stat-bal-mes">$0</b></div>
       <div class="caja-card destacada" id="card-bal-hist"><span>Balance histórico</span><b id="stat-bal-hist">$0</b></div>
     </div>
@@ -65,26 +65,28 @@ function inicioMesAR(){
 }
 
 async function cargarTodo(){
-  const [{ data: gs }, { data: pagosVend }, { data: pagosCli }, { data: pagosProv }] = await Promise.all([
+  const [{ data: gs }, { data: pagosVend }, { data: pagosCli }, { data: pagosProv }, { data: devs }, { data: bonifs }] = await Promise.all([
     sb.from('gastos').select('id, fecha, created_at, descripcion, monto').eq('anulado', false).order('created_at', { ascending: false }),
     sb.from('pagos_vendedores').select('created_at, monto').eq('anulado', false),
     sb.from('pagos_clientes').select('created_at, monto').eq('anulado', false),
-    sb.from('pagos_proveedores').select('created_at, monto_neto').eq('anulado', false)
+    sb.from('pagos_proveedores').select('created_at, monto_neto').eq('anulado', false),
+    sb.from('devoluciones_cab').select('created_at, total').eq('anulado', false),
+    sb.from('bonificaciones').select('created_at, monto').eq('anulado', false)
   ]);
   gastos = gs || [];
 
   // Misma cuenta que el Dashboard. La plata entra cuando se REGISTRA UN PAGO (de un vendedor o de un cliente):
   // un retiro de mercadería o una venta todavía no es un ingreso, es una deuda a cobrar.
-  // Egresos = gastos cargados + pagos a proveedores. Las bonificaciones y devoluciones son créditos, no salen de la caja.
+  // Egresos = gastos cargados + pagos a proveedores + devoluciones + bonificaciones.
   // "Del mes" es el mes calendario actual (hora de Argentina); el histórico es todo desde el principio.
   const desdeMes = inicioMesAR();
   const suma = (filas, campo, soloMes) => (filas || []).reduce((s, f) =>
     (!soloMes || new Date(f.created_at) >= desdeMes) ? s + Number(f[campo]) : s, 0);
 
   const ingHist = suma(pagosVend, 'monto', false) + suma(pagosCli, 'monto', false);
-  const gasHist = suma(gastos, 'monto', false) + suma(pagosProv, 'monto_neto', false);
+  const gasHist = suma(gastos, 'monto', false) + suma(pagosProv, 'monto_neto', false) + suma(devs, 'total', false) + suma(bonifs, 'monto', false);
   const ingMes = suma(pagosVend, 'monto', true) + suma(pagosCli, 'monto', true);
-  const gasMes = suma(gastos, 'monto', true) + suma(pagosProv, 'monto_neto', true);
+  const gasMes = suma(gastos, 'monto', true) + suma(pagosProv, 'monto_neto', true) + suma(devs, 'total', true) + suma(bonifs, 'monto', true);
 
   const pintar = (id, valor, conColor) => {
     const el = document.getElementById(id);
