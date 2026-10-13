@@ -18,7 +18,6 @@ const MODULES = [
   { key: 'proveedores', label: 'Pago a proveedores', href: 'proveedores.html', color: '#27ae60', roles: ['admin', 'encargado'] },
   { key: 'caja', label: 'Caja', href: 'caja.html', color: '#2ecc71', roles: ['admin', 'encargado'] },
   { key: 'tienda', label: 'Tienda online', href: 'tienda-online.html', color: '#16a085', roles: ['admin', 'encargado'] },
-  { key: 'instagram', label: 'Instagram', href: 'instagram.html', color: '#e1306c', roles: ['admin'] },
   { key: 'usuarios', label: 'Usuarios', href: 'usuarios.html', color: '#7f8c8d', roles: ['admin'] },
 ];
 
