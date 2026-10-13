@@ -46,3 +46,22 @@ body{margin:0;}
   .admin-sidebar a.active{border-left-color:transparent;border-bottom-color:var(--mod-color, var(--orange));}
   .admin-sidebar .tienda-link{display:none;}
 }
+
+/* ---- Pagos que los vendedores informan y hay que verificar ---- */
+.alerta-pagos{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:11px 28px;background:#FFF1DF;border-bottom:1px solid #F3C99A;color:#7A4510;font-size:13px;}
+.alerta-pagos button{background:#1e8e5a;color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;}
+.cartel-pago{position:fixed;top:16px;right:16px;z-index:9999;background:#1e8e5a;color:#fff;border:none;padding:14px 20px;border-radius:12px;font-weight:700;font-size:14px;box-shadow:0 10px 30px rgba(0,0,0,.25);cursor:pointer;}
+.app-confirm-box.pagos-box{width:560px;max-height:90vh;overflow-y:auto;}
+.pagos-box h3{font-family:var(--display,'Archivo',sans-serif);color:var(--navy);margin-bottom:8px;}
+.pagos-box .pagos-ayuda{font-size:13px;color:var(--muted);margin-bottom:8px;white-space:normal;}
+.pagos-box .pagos-vacio{padding:18px 0;text-align:center;color:var(--muted);font-size:13px;}
+.pagos-box .pagos-err{color:#C0392B;font-size:12px;min-height:14px;margin:8px 0;}
+.pago-fila{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line);flex-wrap:wrap;}
+.pago-fila .pago-info{flex:1;min-width:200px;font-size:13px;}
+.pago-fila .pago-info small{display:block;color:var(--muted);font-size:12px;margin-top:2px;}
+.pago-fila .pago-monto{font-weight:700;color:var(--navy);}
+.pago-botones{display:flex;gap:8px;}
+.pago-botones button{border:none;border-radius:8px;padding:8px 12px;font-size:13px;font-weight:700;cursor:pointer;}
+.pago-botones button:disabled{opacity:.5;cursor:wait;}
+.pago-botones .pago-ok{background:#1e8e5a;color:#fff;}
+.pago-botones .pago-no{background:#fbe9e7;color:#C0392B;}

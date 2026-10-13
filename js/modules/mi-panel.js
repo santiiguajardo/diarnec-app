@@ -112,6 +112,11 @@ const cerrarModal = id => $(id).classList.remove('open');
   $('rh-cerrar').addEventListener('click', () => cerrarModal('modal-remitos'));
   $('rh-lista').addEventListener('click', onClickHistorial);
 
+  // Informar un pago
+  $('res-pagos').addEventListener('click', onClickPagos);
+  $('pi-cancelar').addEventListener('click', () => cerrarModal('modal-pago'));
+  $('pi-enviar').addEventListener('click', enviarPagoInformado);
+
   // La lista de precios se mantiene al día sola mientras se mira (y al volver a la pestaña)
   setInterval(() => { if(tabActual === 'precios' && !document.hidden) cargarPrecios(); }, REFRESCO_PRECIOS_MS);
   document.addEventListener('visibilitychange', () => { if(!document.hidden && tabActual === 'precios') cargarPrecios(); });
@@ -191,6 +196,7 @@ async function cargarResumen(){
   }
   panelGlobal = p;
   $('res-kpis').innerHTML = htmlCuenta(p);
+  cargarPagosInformados();
   if(errSem){ $('res-semana').innerHTML = `<div class="mp-card empty">No se pudo cargar la cuenta por semana: ${esc(errSem.message)}</div>`; return; }
   semanas = sem || [];
   if(semSel >= semanas.length) semSel = 0;
@@ -383,6 +389,91 @@ function htmlDias(s, movs){
     <div class="dia-head"><span>Día</span><span>Retirado</span><span>Devol. y bonif.</span><span>Pagos</span><span>Ganancia</span><span>Saldo al cierre</span></div>
     ${filas.join('')}
     <div class="dia-total"><span>Total de la semana</span><span>${money(s.retirado)}</span><span>${money(num(s.devuelto) + num(s.bonificado))}</span><span>${money(s.pagado)}</span><span class="${num(s.ganancia) < 0 ? 'gan-neg' : 'gan-pos'}">${money(s.ganancia)}</span><span>${fmtSaldo(num(s.saldo_final))}</span></div>`;
+}
+
+// ===== Pagos informados: el vendedor avisa un pago y admin/encargado lo verifican =====
+
+const ESTADO_PAGO = {
+  pendiente: ['Esperando verificación', 'pi-pend'], confirmado: ['Confirmado', 'pi-ok'],
+  rechazado: ['Rechazado', 'pi-no'], cancelado: ['Retirado', 'pi-can']
+};
+const MEDIO_PAGO = { efectivo: 'Efectivo', transferencia: 'Transferencia' };
+let pagosInformados = [];
+
+async function cargarPagosInformados(){
+  const box = $('res-pagos');
+  const { data, error } = await sb.rpc('mis_pagos_informados');
+  if(error){
+    box.innerHTML = `<div class="mp-card"><div class="pi-head"><h3>💵 Tus pagos informados</h3></div>
+      <div class="empty">No se pudieron cargar tus pagos informados: ${esc(error.message)}</div></div>`;
+    return;
+  }
+  pagosInformados = data || [];
+  const hayPendientes = pagosInformados.some(p => p.estado === 'pendiente');
+  box.innerHTML = `
+    <div class="mp-card">
+      <div class="pi-head">
+        <h3>💵 Tus pagos informados</h3>
+        <button class="btn-pagar" data-act="nuevo">+ Informar un pago</button>
+      </div>
+      ${hayPendientes ? '<div class="mp-hint" style="margin:0 0 6px;">Los pagos que esperan verificación se descuentan de tu saldo cuando DIARNEC los confirme.</div>' : ''}
+      ${pagosInformados.length === 0
+        ? '<div class="empty">Cuando pagues, tocá "Informar un pago" y DIARNEC lo verifica.</div>'
+        : pagosInformados.slice(0, 10).map(p => {
+            const [txt, cls] = ESTADO_PAGO[p.estado] || [p.estado, 'pi-can'];
+            return `
+              <div class="pi-fila">
+                <div class="pi-info">
+                  <span class="pi-monto">${money(p.monto)}</span> · ${esc(MEDIO_PAGO[p.medio_pago] || p.medio_pago)}
+                  <small>${dateTime(p.created_at)}${p.nota ? ' — ' + esc(p.nota) : ''}${p.estado === 'rechazado' && p.motivo_rechazo ? ' · Motivo: ' + esc(p.motivo_rechazo) : ''}</small>
+                </div>
+                <span class="pi-estado ${cls}">${txt}</span>
+                ${p.estado === 'pendiente' ? `<button class="btn-mini del" data-act="retirar" data-id="${p.id}" title="Si lo cargaste mal, retiralo y cargalo de nuevo">Retirar</button>` : ''}
+              </div>`;
+          }).join('')}
+    </div>`;
+}
+
+function onClickPagos(e){
+  const b = e.target.closest('button[data-act]');
+  if(!b) return;
+  if(b.dataset.act === 'nuevo') abrirPagoInformado();
+  else if(b.dataset.act === 'retirar') retirarPagoInformado(Number(b.dataset.id), b);
+}
+
+function abrirPagoInformado(){
+  $('pi-monto').value = '';
+  $('pi-nota').value = '';
+  $('pi-medio').value = 'transferencia';
+  $('pi-err').textContent = '';
+  abrirModal('modal-pago');
+  setTimeout(() => $('pi-monto').focus(), 50);
+}
+
+async function enviarPagoInformado(){
+  const err = $('pi-err');
+  err.textContent = '';
+  const monto = parseFloat($('pi-monto').value);
+  if(!(monto > 0)){ err.textContent = 'Ingresá el monto que pagaste.'; return; }
+  const btn = $('pi-enviar');
+  btn.disabled = true; // evita que un doble toque lo informe dos veces
+  const { error } = await sb.rpc('informar_pago', { p_monto: monto, p_medio: $('pi-medio').value, p_nota: $('pi-nota').value });
+  btn.disabled = false;
+  if(error){ err.textContent = error.message; return; }
+  cerrarModal('modal-pago');
+  avisar('Pago informado. Queda esperando que lo verifiquen.');
+  await cargarPagosInformados();
+}
+
+async function retirarPagoInformado(id, btn){
+  const p = pagosInformados.find(x => x.id === id);
+  if(!p) return;
+  if(!(await confirmDialog(`¿Retirar el pago de ${money(p.monto)}?\nNo se va a verificar. Si lo cargaste mal, volvé a informarlo bien.`, { confirmLabel: 'Retirar pago' }))) return;
+  btn.disabled = true;
+  const { error } = await sb.rpc('cancelar_pago_informado', { p_id: id });
+  if(error){ btn.disabled = false; avisar('No se pudo retirar: ' + error.message); await cargarPagosInformados(); return; }
+  avisar('Pago retirado');
+  await cargarPagosInformados();
 }
 
 // ===== Cartera de clientes =====
