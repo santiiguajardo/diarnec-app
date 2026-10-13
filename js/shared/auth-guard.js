@@ -9,13 +9,50 @@ if(window.top !== window.self){ document.documentElement.innerHTML = ''; }
 // pantalla va cada uno.
 
 let perfilCache = null;
+let vigilando = false;
 
 // { username, rol, vendedor_id } del usuario logueado, o null si no tiene acceso configurado.
+// Si la consulta FALLA (se cortó la conexión, Supabase no responde) tira el error: no es lo mismo que "sin acceso",
+// y confundirlos cerraba la sesión de gente que sí tenía acceso apenas había un corte.
 export async function getPerfil(){
   if(perfilCache) return perfilCache;
   const { data, error } = await sb.rpc('mi_perfil');
-  perfilCache = (!error && data) ? data : null;
+  if(error) throw error;
+  perfilCache = data || null;
   return perfilCache;
+}
+
+// Cartel a pantalla completa cuando no se pudo verificar el acceso por un problema de conexión.
+// La sesión NO se cierra: "Reintentar" recarga y listo.
+function pantallaSinConexion(){
+  if(document.getElementById('sin-conexion')) return;
+  const d = document.createElement('div');
+  d.id = 'sin-conexion';
+  d.style.cssText = 'position:fixed;inset:0;z-index:10000;background:#122436;display:flex;align-items:center;justify-content:center;padding:20px;';
+  d.innerHTML = '<div style="background:#fff;border-radius:14px;padding:26px;max-width:340px;text-align:center;font:14px/1.4 system-ui,sans-serif;color:#1c2b36;">'
+    + '<h3 style="margin:0 0 8px;font-size:18px;">No se pudo conectar</h3>'
+    + '<p style="margin:0 0 16px;color:#5b6b78;">No pudimos verificar tu acceso. Revisá tu conexión: <b>tu sesión sigue abierta</b>.</p>'
+    + '<button type="button" id="sin-conexion-reintentar" style="width:100%;padding:11px;border:none;border-radius:8px;background:#122436;color:#fff;font-weight:700;font-size:14px;cursor:pointer;">Reintentar</button>'
+    + '</div>';
+  document.body.appendChild(d);
+  d.querySelector('#sin-conexion-reintentar').addEventListener('click', () => location.reload());
+}
+
+// Si la sesión se cierra (en otra pestaña, vencida, o la cerró el servidor) esta pantalla vuelve sola al login.
+// Antes quedaba abierta con los datos viejos y los botones fallando, y solo recargando la página aparecía el login.
+// Solo se instala en las pantallas del panel: en el login mismo un "SIGNED_OUT" es normal y no debe redirigir.
+function vigilarSesion(){
+  if(vigilando) return;
+  vigilando = true;
+  sb.auth.onAuthStateChange(event => {
+    if(event === 'SIGNED_OUT') window.location.href = 'login.html';
+  });
+  // Al volver a esta pantalla con el botón "Atrás" el navegador puede mostrarla congelada (aunque ya se cerró la sesión)
+  window.addEventListener('pageshow', async e => {
+    if(!e.persisted) return;
+    const { data: { session } } = await sb.auth.getSession();
+    if(!session) window.location.href = 'login.html';
+  });
 }
 
 async function sinAcceso(){
@@ -31,12 +68,14 @@ export async function requireAuth(){
     window.location.href = 'login.html';
     return null;
   }
-  const perfil = await getPerfil();
+  let perfil;
+  try { perfil = await getPerfil(); } catch(e){ pantallaSinConexion(); return null; }
   if(!perfil) return sinAcceso();
   if(perfil.rol === 'vendedor'){
     window.location.href = 'mi-panel.html';
     return null;
   }
+  vigilarSesion();
   return session;
 }
 
@@ -62,12 +101,14 @@ export async function requireVendedor(){
     window.location.href = 'login.html';
     return null;
   }
-  const perfil = await getPerfil();
+  let perfil;
+  try { perfil = await getPerfil(); } catch(e){ pantallaSinConexion(); return null; }
   if(!perfil) return sinAcceso();
   if(perfil.rol !== 'vendedor'){
     window.location.href = 'dashboard.html';
     return null;
   }
+  vigilarSesion();
   return session;
 }
 
