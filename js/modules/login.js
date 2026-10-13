@@ -12,9 +12,36 @@ function usernameToEmail(username){
 }
 
 const MSG_SIN_ACCESO = 'Tu usuario todavía no tiene acceso configurado. Pedile al administrador que lo revise.';
+const MSG_SIN_CONEXION = 'No se pudo conectar con el servidor. Revisá tu conexión e intentá de nuevo.';
+const MSG_DEMASIADOS = 'Demasiados intentos. Esperá un minuto y probá de nuevo.';
+const ESPERA_MAX_MS = 20000;
+
+function restablecerBoton(){
+  btn.disabled = false;
+  btn.textContent = 'Ingresar';
+}
+
+// Que un pedido que nunca contesta no deje el botón en "Ingresando..." para siempre.
+function conTiempo(promesa){
+  return Promise.race([
+    promesa,
+    new Promise((_, rechazar) => setTimeout(() => rechazar(new Error('tiempo')), ESPERA_MAX_MS))
+  ]);
+}
+
+// Solo es "usuario o contraseña incorrectos" cuando el servidor lo dice; un corte de conexión no lo es.
+const esCredencialIncorrecta = error => error.status === 400 || error.status === 401
+  || error.code === 'invalid_credentials' || /invalid login credentials/i.test(error.message || '');
 
 async function irAlPanel(){
-  const perfil = await getPerfil();
+  let perfil;
+  try {
+    perfil = await conTiempo(getPerfil());
+  } catch(e){
+    // No se pudo verificar el acceso: no se cierra la sesión, se avisa y se puede reintentar
+    errEl.textContent = MSG_SIN_CONEXION;
+    return false;
+  }
   if(!perfil){
     await sb.auth.signOut({ scope: 'local' }); // solo este dispositivo (no cierra las sesiones del mismo usuario en otros equipos)
     errEl.textContent = MSG_SIN_ACCESO;
@@ -25,6 +52,7 @@ async function irAlPanel(){
 }
 
 async function tryLogin(){
+  if(btn.disabled) return; // ya hay un ingreso en curso
   const username = userEl.value.trim();
   const pass = passEl.value;
   errEl.textContent = '';
@@ -33,18 +61,18 @@ async function tryLogin(){
   btn.disabled = true;
   btn.textContent = 'Ingresando...';
 
-  const { error } = await sb.auth.signInWithPassword({ email: usernameToEmail(username), password: pass });
-
-  if(error){
-    btn.disabled = false;
-    btn.textContent = 'Ingresar';
-    errEl.textContent = 'Usuario o contraseña incorrectos.';
-    return;
-  }
-  const ok = await irAlPanel();
-  if(!ok){
-    btn.disabled = false;
-    btn.textContent = 'Ingresar';
+  try {
+    const { error } = await conTiempo(sb.auth.signInWithPassword({ email: usernameToEmail(username), password: pass }));
+    if(error){
+      restablecerBoton();
+      errEl.textContent = error.status === 429 ? MSG_DEMASIADOS
+        : (esCredencialIncorrecta(error) ? 'Usuario o contraseña incorrectos.' : MSG_SIN_CONEXION);
+      return;
+    }
+    if(!(await irAlPanel())) restablecerBoton();
+  } catch(e){
+    restablecerBoton();
+    errEl.textContent = MSG_SIN_CONEXION;
   }
 }
 
@@ -53,11 +81,24 @@ btn.addEventListener('click', tryLogin);
   if(e.key === 'Enter') tryLogin();
 }));
 
-(async function redirectIfLoggedIn(){
+async function redirectIfLoggedIn(){
   if(new URLSearchParams(location.search).get('motivo') === 'sin-acceso'){
     errEl.textContent = MSG_SIN_ACCESO;
     return;
   }
-  const { data: { session } } = await sb.auth.getSession();
-  if(session) await irAlPanel();
-})();
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if(session) await irAlPanel();
+  } catch(e){ /* sin sesión o sin conexión: se queda en el formulario */ }
+}
+redirectIfLoggedIn();
+
+// Si se vuelve a esta pantalla con el botón "Atrás", el navegador la muestra congelada tal como quedó
+// (con el botón en "Ingresando..." y sin reaccionar): se la deja lista de nuevo.
+window.addEventListener('pageshow', e => {
+  if(!e.persisted) return;
+  restablecerBoton();
+  errEl.textContent = '';
+  passEl.value = '';
+  redirectIfLoggedIn();
+});
