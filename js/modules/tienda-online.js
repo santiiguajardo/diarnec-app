@@ -32,6 +32,25 @@ const TIPO_LABEL = { comercio: 'Comercio', particular: 'Particular' };
   const content = await mountLayout('tienda', 'Tienda online');
 
   content.innerHTML = `
+    <div class="admin-section">
+      <h3>Pedidos online</h3>
+      <div class="pedidos-list" id="pedidos-list"></div>
+    </div>
+
+    <div class="admin-section" id="cuenta-online">
+      <h3>Cuenta corriente de la tienda online</h3>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:12px;">
+        Lo que la tienda te debe: los pedidos pasados a venta, menos devoluciones, bonificaciones y el dinero que fuiste ingresando.
+        A diferencia de un vendedor, <b>la tienda online no devuelve stock</b>: sus devoluciones se cargan como devolución común (sin reponer mercadería).
+      </p>
+      <div class="cuenta-cards" id="cuenta-cards"><span style="color:var(--muted);font-size:13px;">Cargando...</span></div>
+      <div class="cuenta-acciones">
+        <button class="btn-sm btn-add" id="cuenta-ingresar">💵 Ingresar dinero</button>
+        <button class="btn-sm btn-blue" id="cuenta-detalle">Ver detalle de la cuenta</button>
+        <a class="btn-sm btn-grey" href="ventas.html" style="text-decoration:none;">↩️ Devoluciones y bonificaciones (en Movimientos)</a>
+      </div>
+    </div>
+
     <div class="tienda-banner">
       <div>
         <h2>Tienda pública</h2>
@@ -64,25 +83,6 @@ const TIPO_LABEL = { comercio: 'Comercio', particular: 'Particular' };
         <span id="cfg-wa-msg" class="cfg-msg"></span>
       </div>
       <div id="cfg-wa-actual" class="cfg-msg" style="margin-top:8px;color:var(--muted);"></div>
-    </div>
-
-    <div class="admin-section" id="cuenta-online">
-      <h3>Cuenta corriente de la tienda online</h3>
-      <p style="color:var(--muted);font-size:13px;margin-bottom:12px;">
-        Lo que la tienda te debe: los pedidos pasados a venta, menos devoluciones, bonificaciones y el dinero que fuiste ingresando.
-        A diferencia de un vendedor, <b>la tienda online no devuelve stock</b>: sus devoluciones se cargan como devolución común (sin reponer mercadería).
-      </p>
-      <div class="cuenta-cards" id="cuenta-cards"><span style="color:var(--muted);font-size:13px;">Cargando...</span></div>
-      <div class="cuenta-acciones">
-        <button class="btn-sm btn-add" id="cuenta-ingresar">💵 Ingresar dinero</button>
-        <button class="btn-sm btn-blue" id="cuenta-detalle">Ver detalle de la cuenta</button>
-        <a class="btn-sm btn-grey" href="ventas.html" style="text-decoration:none;">↩️ Devoluciones y bonificaciones (en Movimientos)</a>
-      </div>
-    </div>
-
-    <div class="admin-section">
-      <h3>Pedidos online</h3>
-      <div class="pedidos-list" id="pedidos-list"></div>
     </div>
 
     <div class="admin-section">
