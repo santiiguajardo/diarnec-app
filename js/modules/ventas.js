@@ -4,6 +4,7 @@ import { abrirDetalleCuenta } from '../shared/cuenta-detalle.js';
 import { mountLayout } from '../shared/layout.js';
 import { money } from '../shared/format.js';
 import { confirmDialog } from '../shared/dialogs.js';
+import { EVENTO_PAGO_CONFIRMADO } from '../shared/pagos-informados.js';
 import { createProductPicker } from '../shared/product-picker.js';
 import { abrirResumenVenta } from '../shared/venta-resumen.js';
 import { ajustarInputCantidad, cantidadEsValida, mensajeCantidad } from '../shared/cantidad.js';
@@ -88,6 +89,9 @@ let comisionesMap = {}; // "vendedorId:marcaId" -> %
   // que el encargado vea un botón que le va a tirar error si lo toca.
   const perfil = await getPerfil();
   if(!perfil || perfil.rol !== 'admin') document.getElementById('btn-comisiones').remove();
+
+  // Un pago que informó un vendedor y se acaba de confirmar cambia su saldo: se recarga la tabla de cuentas.
+  window.addEventListener(EVENTO_PAGO_CONFIRMADO, () => cargarSaldos());
 
   await cargarBase();
   await cargarSaldos();

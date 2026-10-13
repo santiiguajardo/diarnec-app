@@ -3,6 +3,7 @@ import { logout, getPerfil } from './auth-guard.js';
 import { USERNAME_EMAIL_DOMAIN } from './supabase-config.js';
 import { instalarAvisos } from './dialogs.js';
 import { vigilarVersion } from './actualizacion.js';
+import { iniciarPagosPorVerificar } from './pagos-informados.js';
 
 // Un solo lugar para la lista de módulos del admin: agregar acá cuando se construya
 // una página nueva (ver plan de fases), no hay que tocar cada .html. Los colores
@@ -107,6 +108,8 @@ export async function mountLayout(activeKey, pageTitle){
 
   document.getElementById('logout-btn').addEventListener('click', logout);
   if(modulos.some(m => m.key === 'tienda')) iniciarAvisoPedidos();
+  // Pagos que informan los vendedores desde su panel: el admin/encargado los verifica acá
+  if(perfil && ['admin', 'encargado'].includes(perfil.rol)) iniciarPagosPorVerificar();
   vigilarVersion();
   return document.getElementById('admin-content');
 }

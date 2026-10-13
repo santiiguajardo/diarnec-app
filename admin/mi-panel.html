@@ -169,6 +169,22 @@
   .dorm-chip{display:inline-flex;align-items:center;gap:6px;background:var(--paper);border-radius:100px;padding:5px 6px 5px 12px;font-size:12px;margin:0 6px 6px 0;}
   .dorm-chip a{background:#25D366;color:#fff;text-decoration:none;border-radius:100px;padding:3px 9px;font-weight:600;}
 
+  /* ---- pagos informados ---- */
+  .pi-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:6px;}
+  .pi-head h3{margin:0;}
+  .btn-pagar{background:#1e8e5a;color:#fff;border:none;border-radius:8px;padding:9px 14px;font-size:13px;font-weight:700;cursor:pointer;}
+  .btn-pagar:disabled{opacity:.6;cursor:wait;}
+  .pi-fila{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line);font-size:13px;flex-wrap:wrap;}
+  .pi-fila .pi-info{flex:1;min-width:180px;}
+  .pi-fila .pi-info small{display:block;color:var(--muted);font-size:12px;}
+  .pi-fila .pi-monto{font-weight:700;color:var(--navy);}
+  .pi-estado{font-size:11.5px;font-weight:700;border-radius:100px;padding:3px 10px;white-space:nowrap;}
+  .pi-pend{background:#FFF1DF;color:#B8651B;}
+  .pi-ok{background:#E3F4EA;color:#1e8e5a;}
+  .pi-no{background:#FBE9E7;color:#C0392B;}
+  .pi-can{background:var(--paper);color:var(--muted);}
+  .mp-box select{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px;background:#fff;}
+
   /* ---- modales ---- */
   .mp-overlay{position:fixed;inset:0;background:rgba(18,36,54,.5);display:none;align-items:center;justify-content:center;z-index:100;padding:16px;}
   .mp-overlay.open{display:flex;}
@@ -230,6 +246,7 @@
 <div class="mp-main">
   <section class="mp-sec active" id="sec-resumen">
     <div id="res-kpis"></div>
+    <div id="res-pagos"></div>
     <div id="res-semana"></div>
   </section>
 
@@ -265,6 +282,25 @@
       </table>
     </div>
   </section>
+</div>
+
+<!-- Informar un pago -->
+<div class="mp-overlay" id="modal-pago">
+  <div class="mp-box">
+    <h3>Informar un pago</h3>
+    <div class="mp-hint" style="margin:-6px 0 8px;">Cargá lo que le pagaste a DIARNEC. Queda <b>esperando verificación</b>: tu saldo baja recién cuando lo confirmen.</div>
+    <label>Monto pagado ($) *</label>
+    <input type="number" id="pi-monto" min="0" step="0.01" inputmode="decimal" placeholder="Ej: 50000" autocomplete="off">
+    <label>¿Cómo pagaste? *</label>
+    <select id="pi-medio">
+      <option value="transferencia">Transferencia</option>
+      <option value="efectivo">Efectivo</option>
+    </select>
+    <label>Nota (opcional)</label>
+    <input type="text" id="pi-nota" maxlength="200" placeholder="Ej: transferencia del lunes" autocomplete="off">
+    <div class="mp-err" id="pi-err"></div>
+    <div class="acciones"><button class="btn-ghost" id="pi-cancelar">Cancelar</button><button class="btn-pagar" id="pi-enviar">Informar pago</button></div>
+  </div>
 </div>
 
 <!-- Cliente: alta y modificación -->
