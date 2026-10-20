@@ -9,6 +9,7 @@ import { esPorPeso, cantidadEsValida, mensajeCantidad } from '../shared/cantidad
 import { abrirIngresoStock, abrirLectura } from '../shared/ingreso-stock.js';
 import { leerArchivo, interpretarRemito } from '../shared/remito-ocr.js';
 import { abrirReporteAumentos } from '../shared/reporte-aumentos.js';
+import { instalarPegadoDeImagen } from '../shared/pegar-imagen.js';
 
 let productos = [];
 let marcas = [];
@@ -212,6 +213,38 @@ async function deshacer(){
   document.getElementById('imagen-guardar').addEventListener('click', guardarImagen);
   document.getElementById('imagen-url').addEventListener('input', actualizarPreviewImagen);
   document.getElementById('imagen-desc').addEventListener('input', actualizarCuentaDesc);
+
+  // Pegar (Ctrl+V) o arrastrar una imagen en vez de buscar su dirección web: ventana "Foto y descripción"...
+  const estadoImagen = (texto, tipo) => {
+    const el = document.getElementById('imagen-estado');
+    el.textContent = texto;
+    el.className = 'pegar-estado ' + (tipo === 'ocupado' ? '' : tipo);
+  };
+  instalarPegadoDeImagen({
+    activo: () => document.getElementById('modal-imagen').classList.contains('open'),
+    prefijo: () => `p${imagenProductoId}`,
+    estado: estadoImagen,
+    alSubir: url => {
+      const campo = document.getElementById('imagen-url');
+      campo.value = url;
+      campo.dispatchEvent(new Event('input')); // actualiza la vista previa
+    },
+    zona: document.getElementById('imagen-zona')
+  });
+  // ...y el campo de imagen de "Agregar producto nuevo"
+  const campoNuevo = document.getElementById('np-imagen');
+  campoNuevo.placeholder = 'URL de la foto, o pegá la imagen (Ctrl+V)';
+  instalarPegadoDeImagen({
+    activo: () => document.activeElement === campoNuevo,
+    prefijo: () => 'nuevo',
+    estado: (texto, tipo) => {
+      campoNuevo.disabled = tipo === 'ocupado';
+      if(tipo === 'ocupado') campoNuevo.placeholder = 'Subiendo imagen…';
+      else { campoNuevo.placeholder = 'URL de la foto, o pegá la imagen (Ctrl+V)'; if(tipo === 'error') alert(texto); }
+      if(tipo !== 'ocupado') campoNuevo.focus();
+    },
+    alSubir: url => { campoNuevo.value = url; }
+  });
   document.getElementById('prod-cancel').addEventListener('click', () => toggleModal('modal-producto', false));
   document.getElementById('prod-guardar').addEventListener('click', guardarProducto);
   document.getElementById('ep-costo').addEventListener('input', actualizarGananciaEdicion);
@@ -820,6 +853,7 @@ function invImagen(id){
   document.getElementById('imagen-url').value = p.imagen_url || '';
   document.getElementById('imagen-desc').value = p.descripcion || '';
   document.getElementById('imagen-etiqueta').value = p.etiqueta || '';
+  document.getElementById('imagen-estado').textContent = '';
   actualizarCuentaDesc();
   actualizarPreviewImagen();
   toggleModal('modal-imagen', true);
