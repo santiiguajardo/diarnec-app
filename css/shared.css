@@ -100,3 +100,25 @@ td{padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:middle;}
 
 /* Lo que lleva el atributo hidden siempre se esconde, aunque su clase le ponga display:flex/grid */
 [hidden]{display:none !important;}
+
+/* Reporte de aumentos de precios (ver js/shared/reporte-aumentos.js) */
+.app-confirm-box.rep-box{width:min(860px,94vw);max-height:90vh;overflow-y:auto;}
+.rep-box h3{font-family:var(--display,'Archivo',sans-serif);color:var(--navy);margin-bottom:12px;}
+.rep-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;}
+.rep-chips button{border:1px solid var(--line);background:#fff;border-radius:100px;padding:6px 14px;font-size:12.5px;font-weight:600;cursor:pointer;color:var(--ink);}
+.rep-chips button.active{background:var(--navy);border-color:var(--navy);color:#fff;}
+.rep-chips.vista{margin:10px 0 12px;}
+.rep-chips.vista button{border-radius:8px;}
+.rep-rango{font-size:13px;color:var(--muted);}
+.rep-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:12px;}
+.rep-cards div{background:var(--paper);border-radius:10px;padding:10px 12px;}
+.rep-cards span{display:block;font-size:11.5px;color:var(--muted);}
+.rep-cards b{font-size:18px;color:var(--navy);}
+.rep-cards .sube b, .rep-tabla .sube{color:#C0392B;}
+.rep-cards .baja b, .rep-tabla .baja{color:#1e8e5a;}
+.rep-tabla{font-size:12.5px;}
+.rep-tabla th.r, .rep-tabla td.r{text-align:right;white-space:nowrap;}
+.rep-tabla small{color:var(--muted);}
+.rep-vacio{padding:28px 0;text-align:center;color:var(--muted);font-size:13px;}
+.rep-vacio.rep-error{color:#C0392B;}
+.rep-pie{font-size:11.5px;color:var(--muted);margin:12px 0 14px;}
