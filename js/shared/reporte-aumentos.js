@@ -1,5 +1,5 @@
-// "Reporte de aumentos" de Inventario: cada cambio de precio de venta con su fecha, por artículo o por marca,
-// filtrable por período (semanal, mensual, trimestral, semestral, anual). Lee precios_historial (ver migración 0039).
+// "Reporte de aumentos" de Inventario: cada cambio de precio de venta (o de costo) con su fecha, por artículo o por marca,
+// filtrable por período (semanal, mensual, trimestral, semestral, anual). Lee precios_historial (ver migraciones 0039 y 0040).
 
 import { sb } from './supabase-client.js';
 import { money, dateTime } from './format.js';
@@ -18,6 +18,8 @@ const DIA_MS = 86400000;
 
 let periodo = 'mensual';
 let vista = 'articulo'; // 'articulo' | 'marca'
+let campo = 'venta'; // 'venta' (lo que cobrás) | 'costo' (lo que pagás)
+const CAMPOS = { venta: 'Precio de venta', costo: 'Costo' };
 let cambios = [];
 let modal = null;
 let pedido = 0; // para descartar respuestas viejas si se cambia de período rápido
@@ -26,12 +28,12 @@ const fechaCorta = d => new Date(d).toLocaleDateString('es-AR', { timeZone: 'Ame
 const pct = (antes, ahora) => Number(antes) > 0 ? (Number(ahora) - Number(antes)) / Number(antes) * 100 : null;
 const fmtPct = p => p === null ? '—' : `${p > 0 ? '+' : ''}${p.toFixed(1).replace('.', ',')}%`;
 
-async function cargarCambios(desdeIso){
+async function cargarCambios(desdeIso, cual){
   const todos = [];
   for(let desde = 0; ; desde += 1000){
     const { data, error } = await sb.from('precios_historial')
       .select('id, created_at, precio_anterior, precio_nuevo, producto_id, productos(nombre, unidad, marcas(nombre, color))')
-      .gte('created_at', desdeIso)
+      .eq('campo', cual).gte('created_at', desdeIso)
       .order('created_at', { ascending: false }).order('id', { ascending: false })
       .range(desde, desde + 999);
     if(error) throw error;
@@ -133,7 +135,7 @@ function pintar(estado){
   let cuerpo;
   if(estado === 'cargando') cuerpo = '<div class="rep-vacio">Cargando…</div>';
   else if(estado && estado.error) cuerpo = `<div class="rep-vacio rep-error">No se pudo cargar el reporte: ${esc(estado.error)}</div>`;
-  else if(cambios.length === 0) cuerpo = '<div class="rep-vacio">No hubo cambios de precio en este período.</div>';
+  else if(cambios.length === 0) cuerpo = `<div class="rep-vacio">No hubo cambios de ${campo === 'costo' ? 'costo' : 'precio de venta'} en este período.</div>`;
   else {
     const netos = netoPorArticulo(cambios);
     cuerpo = htmlResumen(netos) + (vista === 'articulo' ? htmlPorArticulo() : htmlPorMarca(netos));
@@ -141,6 +143,7 @@ function pintar(estado){
 
   box.innerHTML = `
     <h3>📈 Reporte de aumentos</h3>
+    <div class="rep-chips campo" id="rep-campo">${Object.entries(CAMPOS).map(([k, t]) => `<button type="button" data-c="${k}" class="${k === campo ? 'active' : ''}" title="${k === 'venta' ? 'Lo que cobrás' : 'Lo que pagás'}">${t}</button>`).join('')}</div>
     <div class="rep-chips" id="rep-periodos">${PERIODOS.map(x => `<button type="button" data-p="${x.k}" class="${x.k === periodo ? 'active' : ''}" title="${x.d}">${x.t}</button>`).join('')}</div>
     <div class="rep-rango">${p.d}: del <b>${fechaCorta(desde)}</b> al <b>${fechaCorta(hasta)}</b></div>
     <div class="rep-chips vista" id="rep-vista">
@@ -157,7 +160,7 @@ async function cargar(){
   pintar('cargando');
   const p = PERIODOS.find(x => x.k === periodo);
   try {
-    const datos = await cargarCambios(new Date(Date.now() - p.dias * DIA_MS).toISOString());
+    const datos = await cargarCambios(new Date(Date.now() - p.dias * DIA_MS).toISOString(), campo);
     if(mio !== pedido) return; // eligió otro período mientras tanto
     cambios = datos;
     pintar();
@@ -185,6 +188,8 @@ export function abrirReporteAumentos(){
   modal.innerHTML = '<div class="app-confirm-box rep-box"></div>';
   modal.addEventListener('click', e => {
     if(e.target === modal || e.target.closest('[data-cerrar]')) return cerrar();
+    const bc = e.target.closest('#rep-campo button[data-c]');
+    if(bc){ campo = bc.dataset.c; cargar(); return; }
     const bp = e.target.closest('#rep-periodos button[data-p]');
     if(bp){ periodo = bp.dataset.p; cargar(); return; }
     const bv = e.target.closest('#rep-vista button[data-v]');
