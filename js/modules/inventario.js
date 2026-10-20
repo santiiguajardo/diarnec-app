@@ -8,6 +8,7 @@ import { confirmDialog, promptDialog } from '../shared/dialogs.js';
 import { esPorPeso, cantidadEsValida, mensajeCantidad } from '../shared/cantidad.js';
 import { abrirIngresoStock, abrirLectura } from '../shared/ingreso-stock.js';
 import { leerArchivo, interpretarRemito } from '../shared/remito-ocr.js';
+import { abrirReporteAumentos } from '../shared/reporte-aumentos.js';
 
 let productos = [];
 let marcas = [];
@@ -131,6 +132,7 @@ async function deshacer(){
         <div class="inv-actions">
           <button class="btn-sm btn-undo" id="btn-deshacer" hidden title="">↶ Deshacer</button>
           <button class="btn-sm btn-yellow" id="btn-masiva">✏️ Act. Masiva (%)</button>
+          <button class="btn-sm btn-reporte" id="btn-reporte">📈 Ver reporte de aumentos</button>
           <button class="btn-sm btn-pdf" id="btn-pdf">📄 Lista a PDF</button>
         </div>
       </div>
@@ -198,6 +200,7 @@ async function deshacer(){
   });
   document.getElementById('btn-masiva').addEventListener('click', abrirMasiva);
   document.getElementById('btn-pdf').addEventListener('click', () => toggleModal('modal-pdf', true));
+  document.getElementById('btn-reporte').addEventListener('click', abrirReporteAumentos);
   document.getElementById('masiva-cancel').addEventListener('click', () => toggleModal('modal-masiva', false));
   document.getElementById('baja-cancel').addEventListener('click', () => toggleModal('modal-baja', false));
   document.getElementById('baja-confirmar').addEventListener('click', confirmarSacarStock);
