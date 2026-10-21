@@ -6,6 +6,7 @@
 
 import { money } from './format.js';
 import { guardarPDF } from './guardar-pdf.js';
+import { cargarLibreria } from './cargar-libreria.js';
 
 const soloAscii = s => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '')
   .replace(/[^A-Za-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
@@ -53,7 +54,7 @@ function cargarLogo(url){
 }
 
 export async function armarRemitoPDF(r){
-  if(!window.jspdf) throw new Error('No se pudo cargar el generador de PDF. Revisá tu conexión y recargá la página.');
+  await cargarLibreria('pdf');
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 

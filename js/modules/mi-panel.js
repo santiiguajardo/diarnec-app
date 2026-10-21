@@ -12,6 +12,7 @@ import { confirmDialog, instalarAvisos } from '../shared/dialogs.js';
 import { createProductPicker } from '../shared/product-picker.js';
 import { ajustarInputCantidad, cantidadEsValida, mensajeCantidad } from '../shared/cantidad.js';
 import { descargarRemito, compartirRemitoWhatsApp, normalizarTelefono } from '../shared/remito.js';
+import { cargarLibreria, precargarLibreria } from '../shared/cargar-libreria.js';
 
 instalarAvisos();
 vigilarVersion();
@@ -121,6 +122,7 @@ const cerrarModal = id => $(id).classList.remove('open');
   setInterval(() => { if(tabActual === 'precios' && !document.hidden) cargarPrecios(); }, REFRESCO_PRECIOS_MS);
   document.addEventListener('visibilitychange', () => { if(!document.hidden && tabActual === 'precios') cargarPrecios(); });
 
+  precargarLibreria('pdf'); // el remito y la lista de precios salen al toque, sin frenar la carga de la pantalla
   await abrirTab('resumen');
 })();
 
@@ -845,7 +847,7 @@ const hexARgb = hex => /^#[0-9a-f]{6}$/i.test(hex || '')
 
 // PDF con la lista de precios de venta (lo que se le cobra al cliente): sin costos ni comisiones.
 async function descargarPDF(){
-  if(!window.jspdf){ alert('No se pudo cargar el generador de PDF. Revisá tu conexión y recargá la página.'); return; }
+  try { await cargarLibreria('pdf'); } catch(e){ alert(e.message); return; }
   await cargarPrecios(); // siempre con lo último
   const list = precios;
   const { jsPDF } = window.jspdf;

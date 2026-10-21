@@ -10,6 +10,7 @@ import { abrirIngresoStock, abrirLectura } from '../shared/ingreso-stock.js';
 import { leerArchivo, interpretarRemito } from '../shared/remito-ocr.js';
 import { abrirReporteAumentos } from '../shared/reporte-aumentos.js';
 import { instalarPegadoDeImagen } from '../shared/pegar-imagen.js';
+import { cargarLibreria } from '../shared/cargar-libreria.js';
 
 let productos = [];
 let marcas = [];
@@ -951,6 +952,7 @@ function loadImageAsDataURL(url){
 
 async function exportarPDF(modo){
   toggleModal('modal-pdf', false);
+  try { await cargarLibreria('pdf'); } catch(e){ alert(e.message); return; }
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 

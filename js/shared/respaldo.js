@@ -1,4 +1,5 @@
 import { sb } from './supabase-client.js';
+import { cargarLibreria } from './cargar-libreria.js';
 
 // Copia de seguridad en Excel: un solo archivo .xlsx con una hoja por tabla del sistema (ventas, pagos, stock,
 // clientes, etc.), con los nombres al lado de los números internos (vendedor, cliente, producto...).
@@ -65,7 +66,7 @@ export function textoUltimaCopia(){
 
 // progreso(texto) se llama a medida que avanza. Devuelve { archivo, hojas, avisos }.
 export async function descargarCopiaExcel(progreso = () => {}){
-  if(!window.XLSX) throw new Error('No se cargó la librería de Excel. Recargá la página e intentá de nuevo.');
+  await cargarLibreria('xlsx');
   const XLSX = window.XLSX;
 
   const datos = {};

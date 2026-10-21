@@ -8,6 +8,7 @@ import { abrirDetalleCuenta } from '../shared/cuenta-detalle.js';
 import { normalizarTelefono } from '../shared/remito.js';
 import { createProductPicker } from '../shared/product-picker.js';
 import { ajustarInputCantidad, cantidadEsValida, mensajeCantidad } from '../shared/cantidad.js';
+import { cargarLibreria } from '../shared/cargar-libreria.js';
 
 const STORE_URL = 'https://santiiguajardo.github.io/diarnec-app/';
 const ESTADO_LABEL = { pendiente: 'Pendiente', confirmada: 'Venta confirmada', entregado: 'Entregado', anulada: 'Cancelado' };
@@ -522,6 +523,7 @@ async function generarComprobante(id){
   const p = pedidos.find(p => p.id === id);
   if(!p) return;
 
+  try { await cargarLibreria('pdf'); } catch(e){ alert(e.message); return; }
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 

@@ -5,6 +5,7 @@
 import { sb } from './supabase-client.js';
 import { money } from './format.js';
 import { guardarPDF } from './guardar-pdf.js';
+import { cargarLibreria } from './cargar-libreria.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -61,7 +62,7 @@ function cargarLogo(url){
 }
 
 export async function descargarFacturaVenta(venta){
-  if(!window.jspdf) throw new Error('No se pudo cargar el generador de PDF. Revisá tu conexión y recargá la página.');
+  await cargarLibreria('pdf');
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
