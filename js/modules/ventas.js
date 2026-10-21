@@ -5,6 +5,7 @@ import { mountLayout } from '../shared/layout.js';
 import { money } from '../shared/format.js';
 import { confirmDialog } from '../shared/dialogs.js';
 import { EVENTO_PAGO_CONFIRMADO } from '../shared/pagos-informados.js';
+import { precargarLibreria } from '../shared/cargar-libreria.js';
 import { createProductPicker } from '../shared/product-picker.js';
 import { abrirResumenVenta } from '../shared/venta-resumen.js';
 import { ajustarInputCantidad, cantidadEsValida, mensajeCantidad } from '../shared/cantidad.js';
@@ -93,6 +94,7 @@ let comisionesMap = {}; // "vendedorId:marcaId" -> %
   // Un pago que informó un vendedor y se acaba de confirmar cambia su saldo: se recarga la tabla de cuentas.
   window.addEventListener(EVENTO_PAGO_CONFIRMADO, () => cargarSaldos());
 
+  precargarLibreria('pdf'); // cada venta abre su factura en PDF: se baja de fondo mientras se trabaja
   await cargarBase();
   await cargarSaldos();
   await abrirPedidoDesdeUrl();
