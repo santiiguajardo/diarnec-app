@@ -77,7 +77,10 @@ function iniciarAvisoPedidos(){
 export async function mountLayout(activeKey, pageTitle){
   instalarAvisos();
   const root = document.getElementById('app-shell');
-  const { data: { user } } = await sb.auth.getUser();
+  // getSession() lee la sesión guardada en el navegador; getUser() hacía un pedido a Supabase en CADA pantalla solo para
+  // mostrar el nombre de usuario (el acceso real ya lo verifica requireAuth y lo hace cumplir la base).
+  const { data: { session } } = await sb.auth.getSession();
+  const user = session ? session.user : null;
   const username = user ? user.email.replace(USERNAME_EMAIL_DOMAIN, '') : '';
   const perfil = await getPerfil();
   const modulos = MODULES.filter(m => perfil && m.roles.includes(perfil.rol));
