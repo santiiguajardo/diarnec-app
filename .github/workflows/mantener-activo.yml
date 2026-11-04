@@ -1,6 +1,7 @@
 name: Mantener activo Supabase
 
-# El plan gratis de Supabase pausa el proyecto si pasa una semana sin actividad. Esta tarea llama, lunes y jueves,
+# El plan gratis de Supabase pausa el proyecto si pasa una semana sin actividad. Esta tarea llama, todos los días (antes
+# lunes y jueves: el 29/10/2026 el proyecto se pausó igual y hubo que restaurarlo a mano),
 # a la función registrar_latido() de la base (ver sql/migrations/0036_latido_para_que_supabase_no_se_pause.sql):
 # anota la fecha en una tabla de una sola fila. No toca ventas, pagos, stock, caja ni historial.
 # Usa solo la clave PÚBLICA de la tienda (la misma que ya está en js/shared/supabase-config.js): no hay contraseñas ni secretos.
@@ -12,7 +13,7 @@ name: Mantener activo Supabase
 # Si algún día se deja de tocar el repo por meses, entrar a Actions y volver a activar esta tarea.
 on:
   schedule:
-    - cron: '17 12 * * 1,4'   # lunes y jueves, 12:17 UTC (09:17 en Argentina)
+    - cron: '17 12 * * *'     # todos los días, 12:17 UTC (09:17 en Argentina)
   workflow_dispatch:
 
 permissions: {}
