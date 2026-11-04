@@ -377,6 +377,10 @@
     const list = [...base].sort((a, b) => rango(a) - rango(b) || orden(a, b));
     if(list.length === 0){
       el.className = 'grid';
+      if(errorCarga && products.length === 0){
+        el.innerHTML = `<div class="empty-row">No pudimos cargar los productos en este momento. Estamos reintentando solos… <button class="repeat-forget" onclick="reintentarCarga()">Reintentar ahora</button></div>`;
+        return;
+      }
       el.innerHTML = palabras.length
         ? `<div class="empty-row">No encontramos productos para «${esc(query)}»${activeCat !== 'Todos' ? ` en esta categoría. <button class="repeat-forget" onclick="setCat('Todos')">Buscar en todas</button>` : '.'}</div>`
         : `<div class="empty-row">No hay productos en esta categoría.</div>`;
@@ -594,12 +598,18 @@
     renderTipo();
   }
 
+  let errorCarga = false; // true si no se pudieron traer los productos (conexión, base de datos arrancando)
   async function loadProducts(){
-    const { data, error } = await sb
-      .from('productos')
-      .select('id, nombre, unidad, precio_venta, imagen_url, descripcion, etiqueta, marcas(nombre), categorias(nombre, color)')
-      .eq('activo', true)
-      .order('id');
+    let res;
+    try {
+      res = await sb
+        .from('productos')
+        .select('id, nombre, unidad, precio_venta, imagen_url, descripcion, etiqueta, marcas(nombre), categorias(nombre, color)')
+        .eq('activo', true)
+        .order('id');
+    } catch(e){ res = { error: e }; }
+    const { data, error } = res;
+    errorCarga = !!error;
     if(error){ console.error('Error cargando productos:', error); return; }
     products = (data || []).map(p => ({
       id: p.id,
@@ -726,13 +736,24 @@
 
   // Los <button onclick="..."> del HTML necesitan estas funciones como globales
   // (un <script type="module"> no las expone en window por defecto).
-  Object.assign(window, { setCat, setSort, setView, setTipo, addToCart, changeQty, openCart, closeCart, checkout, imgFallback, quitarLogo, setQuery, repetirPedido, olvidarDatos });
+  Object.assign(window, { reintentarCarga, setCat, setSort, setView, setTipo, addToCart, changeQty, openCart, closeCart, checkout, imgFallback, quitarLogo, setQuery, repetirPedido, olvidarDatos });
 
   // Las categorías quedan fijas debajo del encabezado al scrollear; el alto del encabezado varía (se acomoda en celular).
   function ajustarEncabezado(){
     document.documentElement.style.setProperty('--hdr', document.querySelector('header').offsetHeight + 'px');
   }
   window.addEventListener('resize', ajustarEncabezado);
+
+  // Si la base de datos no respondió (se está despertando, falló la conexión), la tienda reintenta sola en vez de
+  // quedarse vacía hasta que el cliente recargue.
+  let intentosCarga = 0, esperaReintento;
+  async function reintentarCarga(){
+    clearTimeout(esperaReintento);
+    await Promise.all([loadProducts(), loadConfig(), loadVendedores()]);
+    renderTipo(); renderFilters(); renderGrid(); renderCart();
+    if(errorCarga){ if(++intentosCarga < 22) esperaReintento = setTimeout(reintentarCarga, 8000); }
+    else loadMarcas();
+  }
 
   (async function init(){
     ajustarEncabezado();
@@ -748,6 +769,7 @@
     if(ultimo) completarDatos(ultimo); // los datos de entrega quedan completados para el próximo pedido
     renderRepetir();
     loadMarcas();
+    if(errorCarga) esperaReintento = setTimeout(reintentarCarga, 8000);
   })();
 </script>
 
