@@ -34,6 +34,12 @@ jobs:
             cat respuesta.txt; echo
             if [ "$code" = "200" ]; then
               echo "Latido registrado."
+              # Además se toca cada servicio de Supabase (autenticación, consulta de la tienda y archivos): el 8/11/2026 el
+              # proyecto se pausó aunque el latido de la base había corrido el día anterior, así que se cubre todo por las dudas.
+              # Estas llamadas son de solo lectura y NO hacen fallar la tarea.
+              curl -s -o /dev/null -w "Autenticación: HTTP %{http_code}\n" "$URL/auth/v1/settings" -H "apikey: $KEY" || true
+              curl -s -o /dev/null -w "Consulta de productos: HTTP %{http_code}\n" "$URL/rest/v1/productos?select=id&limit=1" -H "apikey: $KEY" || true
+              curl -s -o /dev/null -w "Archivos: HTTP %{http_code}\n" "$URL/storage/v1/object/public/productos/latido.jpg" || true
               exit 0
             fi
             sleep 20
